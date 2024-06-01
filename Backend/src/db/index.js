@@ -11,8 +11,8 @@ const db = new Client({
 
 const connectDb = async () => {
     try {
-        const connectionInstance = await db.connect();
-        console.log("Database coonnected :" + connectionInstance);
+        await db.connect();
+        console.log("Database coonnected ");
     } catch (error) {
         console.log("POSTGRES connection FAILED ", error);
         process.exit(1);
