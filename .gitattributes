@@ -1,0 +1,24 @@
+# Text files with specific EOL rules
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Mark common binary files
+*.jpg -text
+*.jpeg -text
+*.png -text
+*.gif -text
+*.mp3 -text
+*.wav -text
+*.mp4 -text
+*.mkv -text
+*.pdf -text
+*.zip -text
+*.exe -text
+*.dll -text
+
+# Automatically handle other text files
+* text=auto
