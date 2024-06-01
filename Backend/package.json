@@ -11,6 +11,7 @@
   "author": "Md Rafeh Qureshi",
   "license": "ISC",
   "devDependencies": {
-    "nodemon": "^3.1.2"
+    "nodemon": "^3.1.2",
+    "prettier": "^3.2.5"
   }
 }
