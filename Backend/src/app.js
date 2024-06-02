@@ -12,5 +12,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+import studentRouter from "./routes/student.routes.js"
+
+app.use("/api/v1/student",studentRouter)
+
+
+
+
 export { app };
     
