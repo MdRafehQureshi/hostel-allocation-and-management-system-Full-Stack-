@@ -1,11 +1,11 @@
-function asyncHandler(requestHandler){
-    return async (req,res,next)=>{
+function asyncHandler(requestHandler) {
+    return async (req, res, next) => {
         try {
-            await requestHandler(req,res)
+            await requestHandler(req, res);
         } catch (error) {
-            next(error)
+            next(error);
         }
-    }
+    };
 }
 
-export default asyncHandler
+export { asyncHandler };
