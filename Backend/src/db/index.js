@@ -1,7 +1,7 @@
 import pg from "pg";
 const { Client } = pg;
 
-export const db = new Client({
+const db = new Client({
     user: process.env.PGUSER,
     host: process.env.PGHOST,
     port: process.env.PGPORT,
@@ -20,3 +20,5 @@ const connectDb = async () => {
 };
 
 export default connectDb;
+
+export { db };
