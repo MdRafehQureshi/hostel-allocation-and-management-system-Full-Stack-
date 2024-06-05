@@ -44,7 +44,7 @@ function SignUpComp1() {
         <h2 className="my-2 text-xl font-medium tracking-wide text-gray-600 ">Register As Student</h2>
             <Input label={'First name'} {...register('first_name')}/>
             <Input label={'Last name'} {...register('last_name')}/>
-            <Input label={'Student Unique Id'} {...register('student_unique_id')}/>
+            <Input label={'Student Unique Id'} {...register('student_id')}/>
             <Input label={'Email'} {...register('email', {
               required: "Email is required",
               pattern: {
