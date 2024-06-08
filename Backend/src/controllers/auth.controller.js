@@ -5,8 +5,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { db } from "../db/index.js";
-// import { sendEmail } from "../utils/mail.js";
-// import { generateOtp,hashOtp } from "../utils/otp.js";
+import { sendEmail } from "../utils/mail.js";
+import { generateOtp,hashOtp } from "../utils/otp.js";
 
 const generateAccessAndRefreshTokens = (userId, table) => {
     const accessToken = generateAccessToken(userId);
@@ -19,6 +19,33 @@ const generateAccessAndRefreshTokens = (userId, table) => {
     }
     return { accessToken, refreshToken };
 };
+
+const otpVerification = asyncHandler( async (req,res) =>{
+    console.log("request = " + req.body.email);
+    const {email} = req.body
+    if (!email) throw new ApiError(400, "To generate OTP email is required");
+    
+    const existingOtpData = await db.query('SELECT * FROM otp WHERE email=$1',[email])
+    console.log(existingOtpData);
+    if(existingOtpData.rows.length>0){ await db.query('DELETE FROM otp WHERE email=$1',[email])}
+    const otp = generateOtp();
+    const hashedOtp = hashOtp(otp)
+    try {
+        await db.query('INSERT INTO otp(email,otp) VALUES ($1,$2)',[email,hashedOtp])
+    } catch (error) {
+        throw new ApiError(500,"Could not save email")
+    }
+    
+    try {
+        const info = await sendEmail(otp,email);
+        res.status(200).json({
+            message:`mail sent to ${email}` ,
+        })
+    } catch (error) {
+        throw new ApiError(502,"Unable to send email")
+    }
+})
+
 
 const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -128,4 +155,4 @@ const login = asyncHandler(async (req, res) => {
 
 const logout = asyncHandler(async (req, res) => {});
 
-export { login, logout };
+export { login, logout, otpVerification };

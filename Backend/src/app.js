@@ -15,13 +15,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser())
 app.use(express.static("public"));
 
-import otpRouter from "./routes/otp.routes.js"
 import authRouter from  "./routes/auth.routes.js"
 import studentRouter from "./routes/student.routes.js"
 
 
 app.use("/api/v1/auth",authRouter)
-app.use("/api/v1/otp",otpRouter)
 app.use("/api/v1/student",studentRouter)
 
 
