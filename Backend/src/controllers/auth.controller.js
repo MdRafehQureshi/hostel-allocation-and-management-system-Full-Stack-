@@ -6,11 +6,11 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { db } from "../db/index.js";
 import { sendEmail } from "../utils/mail.js";
-import { generateOtp,hashOtp } from "../utils/otp.js";
+import { generateOtp, hashOtp } from "../utils/otp.js";
 
-const generateAccessAndRefreshTokens = (userId, table) => {
-    const accessToken = generateAccessToken(userId);
-    const refreshToken = generateRefreshToken(userId);
+const generateAccessAndRefreshTokens = (userId, role) => {
+    const accessToken = generateAccessToken(userId, role);
+    const refreshToken = generateRefreshToken(userId, role);
     if (!accessToken || !refreshToken) {
         throw new ApiError(
             500,
@@ -20,32 +20,38 @@ const generateAccessAndRefreshTokens = (userId, table) => {
     return { accessToken, refreshToken };
 };
 
-const otpVerification = asyncHandler( async (req,res) =>{
+const otpVerification = asyncHandler(async (req, res) => {
     console.log("request = " + req.body.email);
-    const {email} = req.body
+    const { email } = req.body;
     if (!email) throw new ApiError(400, "To generate OTP email is required");
-    
-    const existingOtpData = await db.query('SELECT * FROM otp WHERE email=$1',[email])
-    console.log(existingOtpData);
-    if(existingOtpData.rows.length>0){ await db.query('DELETE FROM otp WHERE email=$1',[email])}
-    const otp = generateOtp();
-    const hashedOtp = hashOtp(otp)
-    try {
-        await db.query('INSERT INTO otp(email,otp) VALUES ($1,$2)',[email,hashedOtp])
-    } catch (error) {
-        throw new ApiError(500,"Could not save email")
-    }
-    
-    try {
-        const info = await sendEmail(otp,email);
-        res.status(200).json({
-            message:`mail sent to ${email}` ,
-        })
-    } catch (error) {
-        throw new ApiError(502,"Unable to send email")
-    }
-})
 
+    const existingOtpData = await db.query("SELECT * FROM otp WHERE email=$1", [
+        email,
+    ]);
+    console.log(existingOtpData);
+    if (existingOtpData.rows.length > 0) {
+        await db.query("DELETE FROM otp WHERE email=$1", [email]);
+    }
+    const otp = generateOtp();
+    const hashedOtp = hashOtp(otp);
+    try {
+        await db.query("INSERT INTO otp(email,otp) VALUES ($1,$2)", [
+            email,
+            hashedOtp,
+        ]);
+    } catch (error) {
+        throw new ApiError(500, "Could not save email");
+    }
+
+    try {
+        const info = await sendEmail(otp, email);
+        res.status(200).json({
+            message: `mail sent to ${email}`,
+        });
+    } catch (error) {
+        throw new ApiError(502, "Unable to send email");
+    }
+});
 
 const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -64,8 +70,12 @@ const login = asyncHandler(async (req, res) => {
         if (!checkPassword) {
             throw new ApiError(400, "Invalid user credentials");
         }
-        const { accessToken, refreshToken } = generateAccessAndRefreshTokens();
         try {
+            const { accessToken, refreshToken } =
+                generateAccessAndRefreshTokens(
+                    studentLoginData.rows[0].student_id,
+                    "student"
+                );
             await db.query(
                 "UPDATE student SET refresh_token=$1 WHERE student_id = $2",
                 [refreshToken, studentLoginData.rows[0].student_id]
@@ -115,8 +125,11 @@ const login = asyncHandler(async (req, res) => {
     if (!checkPassword) {
         throw new ApiError(400, "Invalid user credentials");
     }
-    const { accessToken, refreshToken } = generateAccessAndRefreshTokens();
     try {
+        const { accessToken, refreshToken } = generateAccessAndRefreshTokens(
+            adminData.rows[0].admin_id,
+            adminData.rows[0].level === 1 ? "admin1" : "admin2"
+        );
         await db.query(
             "UPDATE admin SET refresh_token=$1 WHERE admin_id = $2",
             [refreshToken, adminData.rows[0].admin_id]
@@ -144,14 +157,16 @@ const login = asyncHandler(async (req, res) => {
                     user: {
                         id: adminData.rows[0].admin_id,
                         email: adminData.rows[0].email,
-                        role: adminData.rows[0].level === "1" ? "admin1" : "admin2",
+                        role:
+                            adminData.rows[0].level === "1"
+                                ? "admin1"
+                                : "admin2",
                     },
                 },
                 "User logged in successfully"
             )
         );
 });
-
 
 const logout = asyncHandler(async (req, res) => {});
 
