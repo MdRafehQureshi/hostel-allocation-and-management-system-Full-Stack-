@@ -8,6 +8,10 @@ import { db } from "../db/index.js";
 import { sendEmail } from "../utils/mail.js";
 import { generateOtp, hashOtp } from "../utils/otp.js";
 
+const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+};
 const generateAccessAndRefreshTokens = (userId, role) => {
     const accessToken = generateAccessToken(userId, role);
     const refreshToken = generateRefreshToken(userId, role);
@@ -70,12 +74,11 @@ const login = asyncHandler(async (req, res) => {
         if (!checkPassword) {
             throw new ApiError(400, "Invalid user credentials");
         }
+        const { accessToken, refreshToken } = generateAccessAndRefreshTokens(
+            studentLoginData.rows[0].student_id,
+            "student"
+        );
         try {
-            const { accessToken, refreshToken } =
-                generateAccessAndRefreshTokens(
-                    studentLoginData.rows[0].student_id,
-                    "student"
-                );
             await db.query(
                 "UPDATE student SET refresh_token=$1 WHERE student_id = $2",
                 [refreshToken, studentLoginData.rows[0].student_id]
@@ -88,14 +91,8 @@ const login = asyncHandler(async (req, res) => {
         }
         return res
             .status(200)
-            .cookie("accessToken", accessToken, {
-                httpOnly: true,
-                secure: true,
-            })
-            .cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: true,
-            })
+            .cookie("accessToken", accessToken, cookieOptions)
+            .cookie("refreshToken", refreshToken, cookieOptions)
             .json(
                 new ApiResponse(
                     200,
@@ -125,11 +122,11 @@ const login = asyncHandler(async (req, res) => {
     if (!checkPassword) {
         throw new ApiError(400, "Invalid user credentials");
     }
+    const { accessToken, refreshToken } = generateAccessAndRefreshTokens(
+        adminData.rows[0].admin_id,
+        adminData.rows[0].level === 1 ? "admin1" : "admin2"
+    );
     try {
-        const { accessToken, refreshToken } = generateAccessAndRefreshTokens(
-            adminData.rows[0].admin_id,
-            adminData.rows[0].level === 1 ? "admin1" : "admin2"
-        );
         await db.query(
             "UPDATE admin SET refresh_token=$1 WHERE admin_id = $2",
             [refreshToken, adminData.rows[0].admin_id]
@@ -142,14 +139,8 @@ const login = asyncHandler(async (req, res) => {
     }
     return res
         .status(200)
-        .cookie("accessToken", accessToken, {
-            httpOnly: true,
-            secure: true,
-        })
-        .cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,
-        })
+        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
             new ApiResponse(
                 200,
@@ -168,6 +159,23 @@ const login = asyncHandler(async (req, res) => {
         );
 });
 
-const logout = asyncHandler(async (req, res) => {});
+const logout = asyncHandler(async (req, res) => {
+    Object.keys(req.user).includes("admin_id")
+        ? await db.query(
+              "UPDATE admin SET refresh_token=$1 WHERE admin_id = $2",
+              ["", req.user.admin_id]
+          )
+        : await db.query(
+              "UPDATE student SET refresh_token=$1 WHERE student_id = $2",
+              ["", req.user.student_id]
+          );
+    return res
+        .status(200)
+        .clearCookie("accessToken", req.user.access_token, cookieOptions)
+        .clearCookie("refreshToken", req.user.refresh_token, cookieOptions)
+        .json(new ApiResponse(200, {}, "User logged out successfully"));
+});
 
-export { login, logout, otpVerification };
+const generateRefreshdAccessToken = asyncHandler(async (req, res) => {});
+
+export { login, logout, otpVerification, generateRefreshdAccessToken };
