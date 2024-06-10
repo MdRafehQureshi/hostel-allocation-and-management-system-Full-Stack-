@@ -1,5 +1,5 @@
 import { db } from "../db/index.js";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
     uploadOnCloudinary,
@@ -10,6 +10,7 @@ import fs from "fs";
 import path from "path";
 import { log } from "console";
 import { verifyOtp } from "../utils/otp.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const dirPath = "./public/temp";
 
@@ -33,13 +34,13 @@ const studentSignUp = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required");
     }
     const verifyEmail = await db.query("SELECT * FROM otp WHERE email=$1", [
-        email
+        email,
     ]);
     if (verifyEmail.rows.length < 1) {
         throw new ApiError(406, "Email does not exist");
     }
-    if(!verifyEmail.rows[0].otp){
-        throw new ApiError(400,"Please generate OTP.")
+    if (!verifyEmail.rows[0].otp) {
+        throw new ApiError(400, "Please generate OTP.");
     }
     const hashedOtp = verifyEmail.rows[0].otp;
     if (!verifyOtp(otp, hashedOtp)) {
@@ -66,13 +67,11 @@ const studentSignUp = asyncHandler(async (req, res) => {
     if (checkIsStudent.rows.length < 1) {
         throw new ApiError(
             409,
-            "You mmust be a student of the University to register on the platform"
+            "You need to be a student of the University to register on the platform"
         );
     }
-    //TODO - HASH THE PASSWORD BEFORE STORING
-    
     try {
-        const hashedPassword = await bcrypt.hash(password,10)
+        const hashedPassword = await bcrypt.hash(password, 10);
         await db.query(
             "INSERT INTO student(first_name, last_name, email, student_id, password) VALUES($1,$2,$3,$4,$5)",
             [first_name, last_name, email, student_id, hashedPassword]
@@ -80,9 +79,62 @@ const studentSignUp = asyncHandler(async (req, res) => {
     } catch (error) {
         throw new ApiError(500, "Could not Sign Up, please try again later.");
     }
-    res.status(200).json({
-        message: "Sign Up Successfull.",
-    });
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Sign Up Successfull."));
+});
+
+const getCurrentStudent = asyncHandler(async (req, res) => {
+    if (req.user.resident_id) {
+        const resident = await db.query(
+            "SELECT * FROM resident WHERE resident_id=$1",
+            [req.user.resident_id]
+        );
+        if (resident.rows.length < 1) {
+            throw new ApiError(404, "User Not Found");
+        }
+        const { resident_id, student_id, ...filteredResidentData } =
+            resident.rows[0];
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    user: { ...user, ...filteredResidentData },
+                },
+                "Fetching of hosteler details successfull."
+            )
+        );
+    } else if (!req.user.resident_id && req.user.applicant_id) {
+        const applicant = await db.query(
+            "SELECT * FROM applicant WHERE applicant_id=$1",
+            [req.user.applicant_id]
+        );
+        if (applicant.rows.length < 1) {
+            throw new ApiError(404, "User Not Found");
+        }
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    user: {
+                        ...user,
+                        application_status:
+                            applicant.rows[0].application_status,
+                    },
+                },
+                "Fetching of applicant details successfull."
+            )
+        );
+    }
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                user: { ...req.user },
+            },
+            "Fetching of student details successfull"
+        )
+    );
 });
 
 // const submitApplication = asyncHandler(async (req, res) => {
@@ -119,7 +171,7 @@ const studentSignUp = asyncHandler(async (req, res) => {
 //         deleteAllfiles(dirPath)
 //         throw new ApiError(400, "Permanent Address Proof is required");
 //     }
-       
+
 //     if (! req.files.correspondence_address_proof[0].path) {
 //         deleteAllfiles(dirPath)
 //         throw new ApiError(400, "Correspondpermanentroof is required");
@@ -155,20 +207,20 @@ const studentSignUp = asyncHandler(async (req, res) => {
 
 //     const query = `
 //     INSERT INTO students (
-//       first_name, last_name, email, student_phone_number, gender, date_of_birth, 
-//       degree, course_name, course_duration, admission_year, current_semester, 
-//       is_disabled, disability_type, degree_of_disability, blood_group, 
-//       guardian_full_name, guardian_contact_number, relation_with_guardian, guardian_occupation, annual_family_income, 
-//       country1, state1, city1, district1, address1, pin_code1, police_station1, post_office1, distance1, 
-//       country2, state2, city2, district2, address2, pin_code2, police_station2, post_office2, distance2, 
+//       first_name, last_name, email, student_phone_number, gender, date_of_birth,
+//       degree, course_name, course_duration, admission_year, current_semester,
+//       is_disabled, disability_type, degree_of_disability, blood_group,
+//       guardian_full_name, guardian_contact_number, relation_with_guardian, guardian_occupation, annual_family_income,
+//       country1, state1, city1, district1, address1, pin_code1, police_station1, post_office1, distance1,
+//       country2, state2, city2, district2, address2, pin_code2, police_station2, post_office2, distance2,
 //       student_photo, student_disability_certificate, admission_proof, income_proof, permanent_address_proof, correspondence_address_proof
 //     ) VALUES (
-//       $1, $2, $3, $4, $5, $6, 
-//       $7, $8, $9, $10, $11, 
-//       $12, $13, $14, $15, 
-//       $16, $17, $18, $19, $20, 
-//       $21, $22, $23, $24, $25, $26, $27, $28, $29, 
-//       $30, $31, $32, $33, $34, $35, $36, $37, $38, 
+//       $1, $2, $3, $4, $5, $6,
+//       $7, $8, $9, $10, $11,
+//       $12, $13, $14, $15,
+//       $16, $17, $18, $19, $20,
+//       $21, $22, $23, $24, $25, $26, $27, $28, $29,
+//       $30, $31, $32, $33, $34, $35, $36, $37, $38,
 //       $39, $40, $41, $42, $43, $44
 //     )
 //   `;
@@ -196,5 +248,5 @@ const studentSignUp = asyncHandler(async (req, res) => {
 //     });
 // });
 
-export {studentSignUp};
+export { studentSignUp, getCurrentStudent };
 // submitApplication,
