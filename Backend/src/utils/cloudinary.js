@@ -21,4 +21,8 @@ async function uploadOnCloudinary(localFilePath) {
  }
 }
 
-export {uploadOnCloudinary}
+async function deleteUploadedCloudinaryResources(resourceArray,options={}){
+  await cloudinary.api.delete_resources(resourceArray,options)
+}
+
+export {uploadOnCloudinary,deleteUploadedCloudinaryResources}

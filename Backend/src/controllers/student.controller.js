@@ -1,20 +1,19 @@
 import { db } from "../db/index.js";
 import bcrypt from "bcrypt";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import fs from "fs";
+import path from "path";
 import {
     uploadOnCloudinary,
     deleteUploadedCloudinaryResources,
 } from "../utils/cloudinary.js";
-import { ApiError } from "../utils/ApiError.js";
-import fs from "fs";
-import path from "path";
-import { log } from "console";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { verifyOtp } from "../utils/otp.js";
+import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const dirPath = "./public/temp";
 
-const deleteAllfiles = (dirPath) => {
+const deleteAllFiles = (dirPath) => {
     fs.readdir(dirPath, (err, files) => {
         if (err) throw err;
         for (const file of files) {
@@ -137,116 +136,215 @@ const getCurrentStudent = asyncHandler(async (req, res) => {
     );
 });
 
-// const submitApplication = asyncHandler(async (req, res) => {
-//     if (!req.files || Object.keys(req.files).length === 0)
-//         throw new ApiError(400, "No files were uploaded");
+const submitApplication = asyncHandler(async (req, res) => {
+    if (!req.files || Object.keys(req.files).length === 0)
+        throw new ApiError(400, "No files were uploaded");
 
-//     if (Object.keys(req.files).length !== 6) {
-//         deleteAllfiles(dirPath);
-//         // res.status(400).send("All files are required")
-//         throw new ApiError(400, "All files are required");
-//     }
+    if (Object.keys(req.files).length !== 6) {
+        deleteAllfiles(dirPath);
+        // res.status(400).send("All files are required")
+        throw new ApiError(400, "All files are required");
+    }
+    const requiredFiles = [
+        "student_photo",
+        "student_disability_certificate",
+        "income_proof",
+        "admission_proof",
+        "permanent_address_proof",
+        "correspondence_address_proof",
+    ];
 
-//     if (!req.files.student_photo[0].path) {
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(400, "Student Photo is required");
-//     }
+    for (const file of requiredFiles) {
+        if (!req.files[file] || !req.files[file][0].path) {
+            deleteAllFiles(dirPath);
+            throw new ApiError(400, `${file.replace(/_/g, " ")} is required`);
+        }
+    }
 
-//     if (!req.files.student_disability_certificate[0].path) {
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(400, "Student Disability Certificate is required");
-//     }
+    const uploadPromises = requiredFiles.map((file) =>
+        uploadOnCloudinary(req.files[file][0].path)
+    );
+    const uploadResults = await Promise.all(uploadPromises);
 
-//     if (!req.files.income_proof[0].path) {
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(400, "Income Proof is required");
-//     }
+    if (uploadResults.some((result) => !result)) {
+        const publicIds = uploadResults.map(
+            (result) => result?.public_id || ""
+        );
+        await deleteUploadedCloudinaryResources(publicIds);
+        deleteAllFiles(dirPath);
+        throw new ApiError(500, "Unable to upload files, please try again");
+    }
 
-//     if (!req.files.admission_proof[0].path) {
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(400, "Admission Proof is required");
-//     }
+    const [
+        student_photo_Cloudres,
+        student_disability_certificate_Cloudres,
+        income_proof_Cloudres,
+        admission_proof_Cloudres,
+        permanent_address_proof_Cloudres,
+        correspondence_address_proof_Cloudres,
+    ] = uploadResults;
 
-//     if (!req.files.permanent_address_proof[0].path) {
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(400, "Permanent Address Proof is required");
-//     }
+    const data = req.body;
 
-//     if (! req.files.correspondence_address_proof[0].path) {
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(400, "Correspondpermanentroof is required");
-//     }
+    const query = `UPDATE student 
+    SET student_phone_number = $1, 
+        gender = $2, 
+        date_of_birth = $3,
+        degree = $4, 
+        course_name = $5, 
+        course_duration = $6, 
+        admission_year = $7, 
+        current_semester = $8,
+        is_disabled = $9, 
+        disability_type = $10, 
+        degree_of_disability = $11, 
+        blood_group = $12,
+        guardian_full_name = $13, 
+        guardian_contact_number = $14, 
+        relation_with_guardian = $15, 
+        guardian_occupation = $16, 
+        annual_family_income = $17,
+        country1 = $18, 
+        state1 = $19, 
+        city1 = $20, 
+        district1 = $21, 
+        address1 = $22, 
+        pin_code1 = $23, 
+        police_station1 = $24, 
+        post_office1 = $25, 
+        distance1 = $26,
+        country2 = $27, 
+        state2 = $28, 
+        city2 = $29, 
+        district2 = $30, 
+        address2 = $31, 
+        pin_code2 = $32, 
+        police_station2 = $33, 
+        post_office2 = $34, 
+        distance2 = $35,
+        student_photo = $36, 
+        student_disability_certificate = $37, 
+        admission_proof = $38, 
+        income_proof = $39, 
+        permanent_address_proof = $40, 
+        correspondence_address_proof = $41
+    WHERE student_id = $42`;
 
-//     const student_photo_Cloudres = await uploadOnCloudinary(req.files.student_photo[0].path);
-//     const student_disability_certificate_Cloudres = await uploadOnCloudinary( req.files.student_disability_certificate[0].path );
-//     const income_proof_Cloudres = await uploadOnCloudinary( req.files.income_proof[0].path);
-//     console.log(income_proof_Cloudres);
-//     const admission_proof_Cloudres = await uploadOnCloudinary(req.files.admission_proof[0].path );
-//     const permanent_address_proof_Cloudres = await uploadOnCloudinary( req.files.permanent_address_proof[0].path );
-//     const correspondence_address_proof_Cloudres = await uploadOnCloudinary( req.files.correspondence_address_proof[0].path );
-//     if (
-//         !student_photo_Cloudres ||
-//         !student_disability_certificate_Cloudres ||
-//         !income_proof_Cloudres ||
-//         !admission_proof_Cloudres ||
-//         !permanent_address_proof_Cloudres ||
-//         !correspondence_address_proof_Cloudres
-//     ) {
-//         await deleteUploadedCloudinaryResources([student_photo_Cloudres.public_id||"",
-//             student_disability_certificate_Cloudres?.public_id||"",
-//             income_proof_Cloudres?.public_id||"",
-//             admission_proof_Cloudres?.public_id||"",
-//             permanent_address_proof_Cloudres?.public_id||"",
-//             correspondence_address_proof_Cloudres?.public_id||""
-//         ])
-//         deleteAllfiles(dirPath)
-//         throw new ApiError(500,"Unable to uploadd files , please try again")
-//     }
+    const values = [
+        data.student_phone_number,
+        data.gender,
+        data.date_of_birth,
+        data.degree,
+        data.course_name,
+        data.course_duration,
+        data.admission_year,
+        data.current_semester,
+        data.is_disabled,
+        data.disability_type,
+        data.degree_of_disability,
+        data.blood_group,
+        data.guardian_full_name,
+        data.guardian_contact_number,
+        data.relation_with_guardian,
+        data.guardian_occupation,
+        data.annual_family_income,
+        data.country1,
+        data.state1,
+        data.city1,
+        data.district1,
+        data.address1,
+        data.pin_code1,
+        data.police_station1,
+        data.post_office1,
+        data.distance1,
+        data.country2,
+        data.state2,
+        data.city2,
+        data.district2,
+        data.address2,
+        data.pin_code2,
+        data.police_station2,
+        data.post_office2,
+        data.distance2,
+        student_photo_Cloudres.url,
+        student_disability_certificate_Cloudres.url,
+        admission_proof_Cloudres.url,
+        income_proof_Cloudres.url,
+        permanent_address_proof_Cloudres.url,
+        correspondence_address_proof_Cloudres.url,
+        req.user.student_id,
+    ];
+    try {
+        await db.query("BEGIN");
+        await db.query(query, values);
+        const result = await db.query(
+            "INSERT INTO applicant (application_status, student_id) VALUES($1, $2) RETURNING applicant_id",
+            [1, req.user.student_id]
+        );
+        await db.query(
+            "UPDATE student SET applicant_id=$1 WHERE student_id=$2",
+            [result.rows[0].applicant_id, req.user.student_id]
+        );
+        await db.query("COMMIT");
+    } catch (error) {
+        await db.query("ROLLBACK");
+        const publicIds = uploadResults.map(
+            (result) => result?.public_id || ""
+        );
+        await deleteUploadedCloudinaryResources(publicIds);
+        await db.query(query, [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            req.user.student_id,
+        ]);
+        console.log(error);
+        throw new ApiError(
+            500,
+            "Unable to submit application, please try again later"
+        );
+    }
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Application submitted successfully"));
+});
 
-//     const data = req.body
-
-//     const query = `
-//     INSERT INTO students (
-//       first_name, last_name, email, student_phone_number, gender, date_of_birth,
-//       degree, course_name, course_duration, admission_year, current_semester,
-//       is_disabled, disability_type, degree_of_disability, blood_group,
-//       guardian_full_name, guardian_contact_number, relation_with_guardian, guardian_occupation, annual_family_income,
-//       country1, state1, city1, district1, address1, pin_code1, police_station1, post_office1, distance1,
-//       country2, state2, city2, district2, address2, pin_code2, police_station2, post_office2, distance2,
-//       student_photo, student_disability_certificate, admission_proof, income_proof, permanent_address_proof, correspondence_address_proof
-//     ) VALUES (
-//       $1, $2, $3, $4, $5, $6,
-//       $7, $8, $9, $10, $11,
-//       $12, $13, $14, $15,
-//       $16, $17, $18, $19, $20,
-//       $21, $22, $23, $24, $25, $26, $27, $28, $29,
-//       $30, $31, $32, $33, $34, $35, $36, $37, $38,
-//       $39, $40, $41, $42, $43, $44
-//     )
-//   `;
-
-//   const values = [
-//     data.first_name, data.last_name, data.email, data.student_phone_number, data.gender, data.date_of_birth,
-//     data.degree, data.course_name, data.course_duration, data.admission_year, data.current_semester,
-//     data.is_disabled, data.disability_type, data.degree_of_disability, data.blood_group,
-//     data.guardian_full_name, data.guardian_contact_number, data.relation_with_guardian, data.guardian_occupation, data.annual_family_income,
-//     data.country1, data.state1, data.city1, data.district1, data.address1, data.pin_code1, data.police_station1, data.post_office1, data.distance1,
-//     data.country2, data.state2, data.city2, data.district2, data.address2, data.pin_code2, data.police_station2, data.post_office2, data.distance2,
-//     student_photo_Cloudres.url,
-//     student_disability_certificate_Cloudres.url,
-//     admission_proof_Cloudres.url,
-//     income_proof_Cloudres.url,
-//     permanent_address_proof_Cloudres.url,
-//     correspondence_address_proof_Cloudres.url
-//   ];
-//      db.query(query,values,(err,res)=>{
-
-//    })
-
-//     res.status(200).json({
-//         message: "OK",
-//     });
-// });
-
-export { studentSignUp, getCurrentStudent };
-// submitApplication,
+export { studentSignUp, getCurrentStudent, submitApplication };
