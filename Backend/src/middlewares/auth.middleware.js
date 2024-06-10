@@ -34,7 +34,7 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
         } else {
             console.log(error);
             throw new ApiError(
-                500,
+                error.statusCode||500,
                 error.message||"Something went wrrong"
             );
         }
