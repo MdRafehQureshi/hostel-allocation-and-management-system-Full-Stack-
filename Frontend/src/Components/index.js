@@ -5,7 +5,7 @@ import File from "./File";
 import Select from "./Select";
 import SignUpComp1 from "./SignUpComp1";
 import LogInComp from "./LogInComp";
-
+import AuthLayout from "./AuthLayout";
 export {
     Input,
     ApplicationFormComp,
@@ -13,5 +13,6 @@ export {
     File,
     Select,
     SignUpComp1,
-    LogInComp
+    LogInComp,
+    AuthLayout,
 }
