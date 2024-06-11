@@ -5,21 +5,24 @@ import {
   createRoutesFromElements,
 } from "react-router-dom";
 import Layout from "./Components/Layout";
-import { ApplicationForm,SignUp,LogIn, ApplicationStatus } from "./Pages";
+import AuthLayout from "./Components/AuthLayout"
+import { ApplicationForm,SignUp,LogIn, ApplicationStatus,Home, Instruction, } from "./Pages";
 
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-        <Route element={<Layout/>}>
-          <Route element={<SignUp/>} path="/"/>
-          <Route element={<LogIn/>} path="instruction"/>
-          <Route path="student">
-          <Route element={<ApplicationForm/>} path="application-form"/> 
-          <Route element={<ApplicationStatus/>} path="application-status"/> 
-          </Route>
+      <Route element={<Layout/>}>
+        <Route element={<Home/>} path="/"/>
+        <Route element={<SignUp/>} path="signup"/>
+        <Route element={<LogIn/>} path="login"/>
+        <Route element={<Instruction/>} path="instruction"/>
+        <Route path="student">
+        <Route element={(<AuthLayout authentication={true}><ApplicationForm/></AuthLayout>)} path="application-form"/> 
+        <Route element={(<AuthLayout authentication={true}><ApplicationStatus/></AuthLayout>)} path="application-status"/> 
         </Route>
-      </>
+      </Route>
+    </>
     )
   );
 
