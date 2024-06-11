@@ -98,7 +98,7 @@ const getCurrentStudent = asyncHandler(async (req, res) => {
             new ApiResponse(
                 200,
                 {
-                    user: { ...user, ...filteredResidentData },
+                    user: { ...req.user, ...filteredResidentData },
                 },
                 "Fetching of hosteler details successfull."
             )
@@ -116,7 +116,7 @@ const getCurrentStudent = asyncHandler(async (req, res) => {
                 200,
                 {
                     user: {
-                        ...user,
+                        ...req.user,
                         application_status:
                             applicant.rows[0].application_status,
                     },
