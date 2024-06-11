@@ -18,6 +18,7 @@ function Sidebar({ isOpen }) {
       await authService.logout();
       dispatch(logout());
       setLoading(false);
+      navigate("/login");
     } catch (error) {
       setLoading(false);
       setError(error);
@@ -50,7 +51,7 @@ function Sidebar({ isOpen }) {
 
         {status ? (
           <button
-            className="fixed text-lg font-bold duration-100 bottom-3 sm:right-10 right-52 text-slate-400 active:scale-105"
+            className="fixed text-lg font-bold duration-100 bottom-3 sm:right-10 right-52 hover:underline underline-offset-[5px] text-slate-400 active:scale-105"
             onClick={logOut}
           >
             Logout
@@ -63,6 +64,7 @@ function Sidebar({ isOpen }) {
             >
               Signup
             </button>
+            {" "}/{" "}
             <button
               className="duration-100 hover:underline underline-offset-[5px] active:scale-105"
               onClick={() => navigate("/login")}
