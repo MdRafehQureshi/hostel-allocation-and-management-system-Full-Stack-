@@ -39,7 +39,7 @@ function SignUpComp1() {
       const userData = await authService.studentSignup(signUpData);
       if (userData.data) {
         dispatch(login(userData.data));
-        navigate("student/application-form");
+        navigate("/student/application-form");
       }
       setLoading(false);
     } catch (error) {
@@ -124,7 +124,7 @@ function SignUpComp1() {
           />
           {emailError && (
             <p className="mt-1 text-xs font-medium text-red-600">
-              {emailError.message}
+              {emailError.response.data.message}
             </p>
           )}
 
@@ -220,12 +220,12 @@ function SignUpComp1() {
 
           {otpError && (
             <p className="mt-1 text-xs font-medium text-red-600">
-              {otpError.message}
+              {otpError.response.data.message}
             </p>
           )}
           {error && (
             <p className="mt-1 text-xs font-medium text-red-600">
-              {error.message}
+              {error.response.data.message}
             </p>
           )}
 
