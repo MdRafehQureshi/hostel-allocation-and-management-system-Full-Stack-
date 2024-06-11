@@ -1,24 +1,29 @@
-import { apiClient } from "../config/axiosConfig"
+import { apiClient } from "../config/axiosConfig";
 
 class Auth {
-
-    async generateOtp(data){
-        return await apiClient.post("/auth/get-otp",data)
+  async generateOtp(data) {
+    return await apiClient.post("/api/v1/auth/get-otp", data);
+  }
+  async studentSignup(data) {
+    try {
+      const result = await apiClient.post("/api/v1/student/student-registration", data);
+      if (result) {
+        return await this.login({ email: data.email, password: data.password });
+      }
+    } catch (error) {
+      throw error;
     }
-    async studentSignup(data){
-        return await apiClient.post("/student/student-registration",data)
-    }
+  }
 
-    async login(data){
-        return await apiClient.post("/auth/login",data)
-    }
+  async login(data) {
+    return await apiClient.post("/api/v1/auth/login", data);
+  }
 
-    async logout(){
-        return await apiClient.post("/auth/logout")
-    }
-
+  async logout() {
+    return await apiClient.post("/api/v1/auth/logout");
+  }
 }
 
-const authApiService = new Auth()
+const authApiService = new Auth();
 
-export default authApiService
+export default authApiService;
