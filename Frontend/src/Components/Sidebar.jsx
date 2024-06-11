@@ -2,32 +2,32 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../features/authSlice";
-import authService from "../api/auth/auth"
+import authService from "../api/auth/auth";
 
 function Sidebar({ isOpen }) {
   const status = useSelector((state) => state.auth.status);
-  const [loading,setLoading] = useState(false)
-  const [error,setError] = useState(null)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
- async function logOut(){
-  try {
-    setError(null)
-    setLoading(true)
-    await authService.logout()
-    dispatch(logout())
-    setLoading(false)
-  } catch (error) {
-    setLoading(false)
-    setError(error)
+  async function logOut() {
+    try {
+      setError(null);
+      setLoading(true);
+      await authService.logout();
+      dispatch(logout());
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      setError(error);
+    }
   }
- }
   useEffect(() => {}, [status]);
 
   return (
     <div
-      className={`fixed top-12 bottom-0 left-0 w-full sm:w-64 sm:shadow-md z-40 transition-all duration-500 ${
+      className={`fixed top-12 bottom-0 left-0 w-full sm:w-64 sm:shadow-md z-40 transition-all duration-300 ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
@@ -62,8 +62,7 @@ function Sidebar({ isOpen }) {
               onClick={() => navigate("/signup")}
             >
               Signup
-            </button>{" "}
-            /{" "}
+            </button>
             <button
               className="duration-100 hover:underline underline-offset-[5px] active:scale-105"
               onClick={() => navigate("/login")}
@@ -74,7 +73,7 @@ function Sidebar({ isOpen }) {
         )}
       </div>
       <div
-        className={` sm:hidden fixed top-0 bottom-0 right-0 w-4/12 h-screen bg-black opacity-25 transition-all duration-300 ${
+        className={` sm:hidden fixed top-0 bottom-0 right-0 w-4/12 h-screen bg-black opacity-25 transition-all duration-200 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } `}
       ></div>
