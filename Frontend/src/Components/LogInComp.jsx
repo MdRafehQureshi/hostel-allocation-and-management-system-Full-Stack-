@@ -29,6 +29,8 @@ function LogInComp(){
         setLoading(false)
 
       } catch (error) {
+        setLoading(false)
+        console.log(error);
         setError(error)
       }
     }
@@ -60,7 +62,7 @@ function LogInComp(){
                 <Button type="submit" disabled={loading===true} onSubmit={handleSubmit(onSubmit)} className={`w-5/6 py-2 mt-5 text-center text-white duration-300 bg-gray-600 rounded-md sm:py-1 active:opacity-80 sm:active:hover:scale-110 disabled:bg-gray-400 `}>
                 {loading?"Logging in..":"Login"}
                 </Button>
-                {error && <p className="my-1 text-xs font-medium text-red-600">{error.message}</p>}
+                {error && <p className="my-1 text-xs font-medium text-red-600">{error.response.data.message}</p>}
               </form>
           </div>
       </Container>
