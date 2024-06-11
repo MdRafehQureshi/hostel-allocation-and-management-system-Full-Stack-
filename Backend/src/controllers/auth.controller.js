@@ -11,6 +11,7 @@ import { generateOtp, hashOtp } from "../utils/otp.js";
 const cookieOptions = {
     httpOnly: true,
     secure: true,
+    SameSite: "none",
 };
 const generateAccessAndRefreshTokens = (userId, role) => {
     const accessToken = generateAccessToken(userId, role);
