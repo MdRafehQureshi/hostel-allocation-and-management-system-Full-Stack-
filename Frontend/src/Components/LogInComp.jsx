@@ -2,12 +2,35 @@ import  Container from "./Container"
 import Input from "./Input"
 import Button from "./Button"
 import { useForm } from "react-hook-form"
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import authService from "../api/auth/auth"
+import { login } from "../features/authSlice"
 
 function LogInComp(){
     const {register, handleSubmit, formState:{errors} } = useForm();
-    
-    function onSubmit(data) {
+    const [loading,setLoading] = useState(false)
+    const [error,setError] = useState(null) 
+    const dispatch = useDispatch()
+    const navigate = useNavigate() 
+
+    async function onSubmit(data) {
       console.log(data);
+      try {
+        setLoading(true)
+        setError(null)
+        const userData = await authService.login(data) 
+        console.log(userData);
+        if(userData.data)
+        { dispatch(login(userData.data))
+          navigate("/student/application-form")
+        }
+        setLoading(false)
+
+      } catch (error) {
+        setError(error)
+      }
     }
 
     return (
@@ -34,9 +57,10 @@ function LogInComp(){
               })}
               error={errors.password}/>
               
-                <Button type="submit" onSubmit={handleSubmit(onSubmit)} className="w-5/6 py-2 mt-5 text-center text-white duration-300 bg-gray-600 rounded-md sm:py-1 active:opacity-80 sm:active:hover:scale-110">
-                  Submit
+                <Button type="submit" disabled={loading===true} onSubmit={handleSubmit(onSubmit)} className={`w-5/6 py-2 mt-5 text-center text-white duration-300 bg-gray-600 rounded-md sm:py-1 active:opacity-80 sm:active:hover:scale-110 disabled:bg-gray-400 `}>
+                {loading?"Logging in..":"Login"}
                 </Button>
+                {error && <p className="my-1 text-xs font-medium text-red-600">{error.message}</p>}
               </form>
           </div>
       </Container>
