@@ -10,6 +10,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { verifyOtp } from "../utils/otp.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { getCoordinatesOpenCage, haversineDistance } from "../utils/distance.js";
+
 
 const dirPath = "./public/temp";
 
@@ -136,215 +138,280 @@ const getCurrentStudent = asyncHandler(async (req, res) => {
     );
 });
 
-const submitApplication = asyncHandler(async (req, res) => {
-    if (!req.files || Object.keys(req.files).length === 0)
-        throw new ApiError(400, "No files were uploaded");
-
-    if (Object.keys(req.files).length !== 6) {
-        deleteAllfiles(dirPath);
-        // res.status(400).send("All files are required")
-        throw new ApiError(400, "All files are required");
-    }
-    const requiredFiles = [
-        "student_photo",
-        "student_disability_certificate",
-        "income_proof",
-        "admission_proof",
-        "permanent_address_proof",
-        "correspondence_address_proof",
-    ];
-
-    for (const file of requiredFiles) {
-        if (!req.files[file] || !req.files[file][0].path) {
-            deleteAllFiles(dirPath);
-            throw new ApiError(400, `${file.replace(/_/g, " ")} is required`);
+const getDistance = asyncHandler(async (req, res) => {
+    console.log(req.body);
+    console.log("inside function");
+    const destinationAddress = "Maulana Abul Kalam Azad University of Technology,West Bengal , NH12, Haringhata, Bara jagulia,Nadia District, West Bengal, 741249, India";
+    let originAddress="";
+    let temp = "";
+    for(let [key,value] of Object.entries(req.body)){
+        console.log("inside loop");
+        if(!value){
+            throw new ApiError(400, "All fields are required.");
         }
+        if((key==="police_station1" || key==="post_office1")||(key==="police_station2" || key==="post_office2")){
+            continue;
+        }
+        temp += `${value}, `
+        console.log(temp);
     }
+    originAddress =  temp.trim().slice(0,-1)
+    console.log(originAddress);
 
-    const uploadPromises = requiredFiles.map((file) =>
-        uploadOnCloudinary(req.files[file][0].path)
-    );
-    const uploadResults = await Promise.all(uploadPromises);
-
-    if (uploadResults.some((result) => !result)) {
-        const publicIds = uploadResults.map(
-            (result) => result?.public_id || ""
-        );
-        await deleteUploadedCloudinaryResources(publicIds);
-        deleteAllFiles(dirPath);
-        throw new ApiError(500, "Unable to upload files, please try again");
-    }
-
-    const [
-        student_photo_Cloudres,
-        student_disability_certificate_Cloudres,
-        income_proof_Cloudres,
-        admission_proof_Cloudres,
-        permanent_address_proof_Cloudres,
-        correspondence_address_proof_Cloudres,
-    ] = uploadResults;
-
-    const data = req.body;
-
-    const query = `UPDATE student 
-    SET student_phone_number = $1, 
-        gender = $2, 
-        date_of_birth = $3,
-        degree = $4, 
-        course_name = $5, 
-        course_duration = $6, 
-        admission_year = $7, 
-        current_semester = $8,
-        is_disabled = $9, 
-        disability_type = $10, 
-        degree_of_disability = $11, 
-        blood_group = $12,
-        guardian_full_name = $13, 
-        guardian_contact_number = $14, 
-        relation_with_guardian = $15, 
-        guardian_occupation = $16, 
-        annual_family_income = $17,
-        country1 = $18, 
-        state1 = $19, 
-        city1 = $20, 
-        district1 = $21, 
-        address1 = $22, 
-        pin_code1 = $23, 
-        police_station1 = $24, 
-        post_office1 = $25, 
-        distance1 = $26,
-        country2 = $27, 
-        state2 = $28, 
-        city2 = $29, 
-        district2 = $30, 
-        address2 = $31, 
-        pin_code2 = $32, 
-        police_station2 = $33, 
-        post_office2 = $34, 
-        distance2 = $35,
-        student_photo = $36, 
-        student_disability_certificate = $37, 
-        admission_proof = $38, 
-        income_proof = $39, 
-        permanent_address_proof = $40, 
-        correspondence_address_proof = $41
-    WHERE student_id = $42`;
-
-    const values = [
-        data.student_phone_number,
-        data.gender,
-        data.date_of_birth,
-        data.degree,
-        data.course_name,
-        data.course_duration,
-        data.admission_year,
-        data.current_semester,
-        data.is_disabled,
-        data.disability_type,
-        data.degree_of_disability,
-        data.blood_group,
-        data.guardian_full_name,
-        data.guardian_contact_number,
-        data.relation_with_guardian,
-        data.guardian_occupation,
-        data.annual_family_income,
-        data.country1,
-        data.state1,
-        data.city1,
-        data.district1,
-        data.address1,
-        data.pin_code1,
-        data.police_station1,
-        data.post_office1,
-        data.distance1,
-        data.country2,
-        data.state2,
-        data.city2,
-        data.district2,
-        data.address2,
-        data.pin_code2,
-        data.police_station2,
-        data.post_office2,
-        data.distance2,
-        student_photo_Cloudres.url,
-        student_disability_certificate_Cloudres.url,
-        admission_proof_Cloudres.url,
-        income_proof_Cloudres.url,
-        permanent_address_proof_Cloudres.url,
-        correspondence_address_proof_Cloudres.url,
-        req.user.student_id,
-    ];
     try {
-        await db.query("BEGIN");
-        await db.query(query, values);
-        const result = await db.query(
-            "INSERT INTO applicant (application_status, student_id) VALUES($1, $2) RETURNING applicant_id",
-            [1, req.user.student_id]
+        const coords1 = { lat: 22.9579942, lon: 88.5422764 }; // coordinates of MAKAUT
+        const coords2 = await getCoordinatesOpenCage(originAddress);
+        console.log(coords2);
+        const distance = haversineDistance(coords1, coords2);
+        if (!distance) {
+            throw new ApiError(
+                500,
+                "Could not calculate distance, please try again ."
+            );
+        }
+        console.log(
+            `The distance between ${originAddress} and ${destinationAddress} is ${distance.toFixed(2)} km`
         );
-        await db.query(
-            "UPDATE student SET applicant_id=$1 WHERE student_id=$2",
-            [result.rows[0].applicant_id, req.user.student_id]
-        );
-        await db.query("COMMIT");
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    { distance },
+                    "Distance calculated successfully."
+                )
+            );
     } catch (error) {
-        await db.query("ROLLBACK");
-        const publicIds = uploadResults.map(
-            (result) => result?.public_id || ""
-        );
-        await deleteUploadedCloudinaryResources(publicIds);
-        await db.query(query, [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            req.user.student_id,
-        ]);
-        console.log(error);
-        throw new ApiError(
-            500,
-            "Unable to submit application, please try again later"
-        );
-    }
-    return res
-        .status(200)
-        .json(new ApiResponse(200, {}, "Application submitted successfully"));
+        console.log(error)
+        throw new ApiError(error.status||500,error.message||"Something went wrong while calculating distance.");
+    }   
 });
 
-export { studentSignUp, getCurrentStudent, submitApplication };
+const submitApplication = asyncHandler(async (req, res) => {
+    try {
+        console.log("application data", req.body);
+        console.log("application files", req.files);
+        if (!req.files || Object.keys(req.files).length === 0)
+            throw new ApiError(400, "No files were uploaded");
+
+        if (Object.keys(req.files).length !== 6) {
+            deleteAllFiles(dirPath);
+            // res.status(400).send("All files are required")
+            throw new ApiError(400, "All files are required");
+        }
+        const requiredFiles = [
+            "student_photo",
+            "student_disability_certificate",
+            "income_proof",
+            "admission_proof",
+            "permanent_address_proof",
+            "correspondence_address_proof",
+        ];
+
+        for (const file of requiredFiles) {
+            if (!req.files[file] || !req.files[file][0].path) {
+                deleteAllFiles(dirPath);
+                throw new ApiError(
+                    400,
+                    `${file.replace(/_/g, " ")} is required`
+                );
+            }
+        }
+
+        const uploadPromises = requiredFiles.map((file) =>
+            uploadOnCloudinary(req.files[file][0].path)
+        );
+        const uploadResults = await Promise.all(uploadPromises);
+
+        if (uploadResults.some((result) => !result)) {
+            const publicIds = uploadResults.map(
+                (result) => result?.public_id || ""
+            );
+            await deleteUploadedCloudinaryResources(publicIds);
+            deleteAllFiles(dirPath);
+            throw new ApiError(500, "Unable to upload files, please try again");
+        }
+
+        const [
+            student_photo_Cloudres,
+            student_disability_certificate_Cloudres,
+            income_proof_Cloudres,
+            admission_proof_Cloudres,
+            permanent_address_proof_Cloudres,
+            correspondence_address_proof_Cloudres,
+        ] = uploadResults;
+
+        const data = req.body;
+
+        const query = `UPDATE student 
+        SET student_phone_number = $1, 
+            gender = $2, 
+            date_of_birth = $3,
+            degree = $4, 
+            course_name = $5, 
+            course_duration = $6, 
+            admission_year = $7, 
+            current_semester = $8,
+            is_disabled = $9, 
+            disability_type = $10, 
+            degree_of_disability = $11, 
+            blood_group = $12,
+            guardian_full_name = $13, 
+            guardian_contact_number = $14, 
+            relation_with_guardian = $15, 
+            guardian_occupation = $16, 
+            annual_family_income = $17,
+            country1 = $18, 
+            state1 = $19, 
+            city1 = $20, 
+            district1 = $21, 
+            address1 = $22, 
+            pin_code1 = $23, 
+            police_station1 = $24, 
+            post_office1 = $25, 
+            distance1 = $26,
+            country2 = $27, 
+            state2 = $28, 
+            city2 = $29, 
+            district2 = $30, 
+            address2 = $31, 
+            pin_code2 = $32, 
+            police_station2 = $33, 
+            post_office2 = $34, 
+            distance2 = $35,
+            student_photo = $36, 
+            student_disability_certificate = $37, 
+            admission_proof = $38, 
+            income_proof = $39, 
+            permanent_address_proof = $40, 
+            correspondence_address_proof = $41
+        WHERE student_id = $42`;
+
+        const values = [
+            data.student_phone_number,
+            data.gender,
+            data.date_of_birth,
+            data.degree,
+            data.course_name,
+            data.course_duration,
+            data.admission_year,
+            data.current_semester,
+            data.is_disabled,
+            data.disability_type,
+            data.degree_of_disability,
+            data.blood_group,
+            data.guardian_full_name,
+            data.guardian_contact_number,
+            data.relation_with_guardian,
+            data.guardian_occupation,
+            data.annual_family_income,
+            data.country1,
+            data.state1,
+            data.city1,
+            data.district1,
+            data.address1,
+            data.pin_code1,
+            data.police_station1,
+            data.post_office1,
+            data.distance1,
+            data.country2,
+            data.state2,
+            data.city2,
+            data.district2,
+            data.address2,
+            data.pin_code2,
+            data.police_station2,
+            data.post_office2,
+            data.distance2,
+            student_photo_Cloudres.url,
+            student_disability_certificate_Cloudres.url,
+            admission_proof_Cloudres.url,
+            income_proof_Cloudres.url,
+            permanent_address_proof_Cloudres.url,
+            correspondence_address_proof_Cloudres.url,
+            req.user.student_id,
+        ];
+        try {
+            await db.query("BEGIN");
+            await db.query(query, values);
+            const result = await db.query(
+                "INSERT INTO applicant (application_status, student_id) VALUES($1, $2) RETURNING applicant_id",
+                [1, req.user.student_id]
+            );
+            await db.query(
+                "UPDATE student SET applicant_id=$1 WHERE student_id=$2",
+                [result.rows[0].applicant_id, req.user.student_id]
+            );
+            await db.query("COMMIT");
+        } catch (error) {
+            await db.query("ROLLBACK");
+            const publicIds = uploadResults.map(
+                (result) => result?.public_id || ""
+            );
+            await deleteUploadedCloudinaryResources(publicIds);
+            await db.query(query, [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                req.user.student_id,
+            ]);
+            console.log(error);
+            throw new ApiError(
+                500,
+                error?.message ||
+                    "Unable to submit application, please try again later"
+            );
+        }
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(200, {}, "Application submitted successfully")
+            );
+    } catch (error) {
+        console.log(error);
+        throw new ApiError(
+            error.status || 500,
+            error.message || "Something went wrong"
+        );
+    }
+});
+
+export { studentSignUp, getCurrentStudent, submitApplication , getDistance};
