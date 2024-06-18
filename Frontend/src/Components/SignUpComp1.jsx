@@ -32,7 +32,7 @@ function SignUpComp1() {
 
   async function onSubmit(data) {
     console.log(data);
-    const { confirm_password, ...signUpData } = data;
+    const { confirm_password, ...signUpData } = data; //to filter out confirm password from signup data
     try {
       setError(null);
       setLoading(true);
