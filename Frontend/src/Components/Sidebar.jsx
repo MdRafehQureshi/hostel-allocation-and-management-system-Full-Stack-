@@ -6,10 +6,12 @@ import authService from "../api/auth/auth";
 
 function Sidebar({ isOpen }) {
   const status = useSelector((state) => state.auth.status);
+  const user = useSelector((state)=>state.auth.userData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
 
   async function logOut() {
     try {
@@ -24,7 +26,8 @@ function Sidebar({ isOpen }) {
       setError(error);
     }
   }
-  useEffect(() => {}, [status]);
+  useEffect(() => {}, [status,user]);
+
 
   return (
     <div
@@ -33,7 +36,7 @@ function Sidebar({ isOpen }) {
       }`}
     >
       <div className="fixed top-0 bottom-0 flex flex-col items-center w-8/12 h-screen pt-4 text-black bg-white sm:w-64">
-        {obj1.map((item, index) => (
+        {(!user || !user.resident_id) && obj1.map((item, index) => (
           <NavLink
             key={index}
             to={item.path}
