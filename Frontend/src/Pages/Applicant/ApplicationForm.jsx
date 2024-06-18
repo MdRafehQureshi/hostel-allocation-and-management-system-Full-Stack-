@@ -1,4 +1,4 @@
-import { ApplicationFormComp } from "../Components";
+import { ApplicationFormComp } from "../../Components";
 
 function ApplicationForm() {
   return <ApplicationFormComp />;
