@@ -11,7 +11,7 @@ import { generateOtp, hashOtp } from "../utils/otp.js";
 const cookieOptions = {
     httpOnly: true,
     secure: true,
-    SameSite: "none",
+    sameSite: "None",
 };
 const generateAccessAndRefreshTokens = (userId, role) => {
     const accessToken = generateAccessToken(userId, role);
@@ -26,7 +26,6 @@ const generateAccessAndRefreshTokens = (userId, role) => {
 };
 
 const otpVerification = asyncHandler(async (req, res) => {
-    console.log("request = " + req.body.email);
     const { email } = req.body;
     if (!email) throw new ApiError(400, "To generate OTP email is required");
 
@@ -123,6 +122,7 @@ const login = asyncHandler(async (req, res) => {
     if (!checkPassword) {
         throw new ApiError(400, "Invalid user credentials");
     }
+    console.log(typeof adminData.rows[0].level);
     const { accessToken, refreshToken } = generateAccessAndRefreshTokens(
         adminData.rows[0].admin_id,
         adminData.rows[0].level === 1 ? "admin1" : "admin2"
@@ -150,7 +150,7 @@ const login = asyncHandler(async (req, res) => {
                         id: adminData.rows[0].admin_id,
                         email: adminData.rows[0].email,
                         role:
-                            adminData.rows[0].level === "1"
+                            adminData.rows[0].level === 1
                                 ? "admin1"
                                 : "admin2",
                     },
@@ -177,6 +177,62 @@ const logout = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-const generateRefreshdAccessToken = asyncHandler(async (req, res) => {});
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingToken = req.cookies.refreshToken;
+    if (!incomingToken) {
+        console.log("unauhorized");
+        throw new ApiError(401, "Unauthorized request!");
+    }
+    
+    const decodedToken = jwt.verify(
+        incomingToken,
+        process.env.REFRESH_TOKEN_SECRET
+    ); 
+    if (!decodedToken) {
+        throw new ApiError(401, "Refresh token invalid or expired");
+    }
+    if (decodedToken.role === "student") {
+        const student = await db.query(
+            "SELECT refresh_token FROM student WHERE student_id=$1",
+            [decodedToken.id]
+        );
+        if (student.rows.length < 1) {
+            throw new ApiError(401, "Invalid refresh token");
+        }
+        if (incomingToken !== student.rows[0].refresh_token) {
+            throw new ApiError(401, "Refresh token expired or used");
+        }
 
-export { login, logout, otpVerification, generateRefreshdAccessToken };
+        const accessToken = generateAccessToken(
+            decodedToken.id,
+            "student"
+        );
+        return res.status(200)
+            .cookie("accessToken", accessToken, cookieOptions)
+            .cookie("refreshToken", incomingToken, cookieOptions)
+            .json(
+                new ApiResponse(200, {}, "Access token refreshed successfully")
+            );
+    }
+    const admin = await db.query(
+        "SELECT refresh_token FROM admin WHERE admin_id=$1",
+        [decodedToken.id]
+    );
+    if (admin.rows.length < 1) {
+        throw new ApiError(401, "Invalid refresh token");
+    }
+    if (incomingToken !== admin.rows[0].refresh_token) {
+        throw new ApiError(401, "Refresh token expired or used");
+    }
+
+    const accessToken = generateAccessToken(
+        decodedToken.id,
+        decodedToken.role
+    );
+    return res.status(200)
+        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("refreshToken", incomingToken, cookieOptions)
+        .json(new ApiResponse(200, {}, "Access token refreshed successfully"));
+});
+
+export { login, logout, otpVerification, refreshAccessToken };
