@@ -1,8 +1,9 @@
 import React from 'react'
+import { ApplicationStatusComp } from '../Components'
 
 function ApplicationStatus() {
   return (
-    <div>ApplicationStatus</div>
+    <ApplicationStatusComp/>
   )
 }
 
