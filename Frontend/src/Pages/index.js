@@ -1,9 +1,9 @@
-import ApplicationForm from "./ApplicationForm";
+import ApplicationForm from "./Applicant/ApplicationForm";
 import Home from "./Home";
 import Instruction from "./Instruction";
-import SignUp from "./SignUp";
+import SignUp from "./Applicant/SignUp";
 import LogIn from "./LogIn";
-import ApplicationStatus from "./ApplicationStatus";
+import ApplicationStatus from "./Applicant/ApplicationStatus";
 
 export {
     ApplicationForm,
