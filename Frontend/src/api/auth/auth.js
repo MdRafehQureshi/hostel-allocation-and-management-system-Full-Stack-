@@ -22,6 +22,11 @@ class Auth {
   async logout() {
     return await apiClient.post("/api/v1/auth/logout");
   }
+
+  async refreshAccessToken(){
+    return await apiClient.post("api/v1/auth/access-token");
+  } 
+
 }
 
 const authApiService = new Auth();
