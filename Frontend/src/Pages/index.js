@@ -1,9 +1,14 @@
-import ApplicationForm from "./Applicant/ApplicationForm";
+import ApplicationForm from "./applicantPages/ApplicationForm";
 import Home from "./Home";
 import Instruction from "./Instruction";
-import SignUp from "./Applicant/SignUp";
+import SignUp from "./applicantPages/SignUp";
 import LogIn from "./LogIn";
-import ApplicationStatus from "./Applicant/ApplicationStatus";
+import ApplicationStatus from "./applicantPages/ApplicationStatus";
+import Admins from "./adminPages/Admins"
+import AdminProfile from "./adminPages/Profile"
+import Residents from "./adminPages/Residents"
+import Applicants from "./adminPages/Applicants"
+import Allotment from "./adminPages/Allotment"
 
 export {
     ApplicationForm,
@@ -12,4 +17,9 @@ export {
     SignUp,
     LogIn,
     ApplicationStatus,
+    Admins,
+    AdminProfile,
+    Residents,
+    Applicants,
+    Allotment,
 }
