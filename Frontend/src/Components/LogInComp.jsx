@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import authService from "../api/auth/auth";
 import studentService from "../api/student/student";
 import { login, logout } from "../features/authSlice";
+import adminService from "../api/admin/admin";
 
 function LogInComp() {
   const {
@@ -33,6 +34,10 @@ function LogInComp() {
           if(!res.data.data.user.resident_id){
           navigate("/student/application-form");
         }
+      }else if(res.data.data.user.role === "admin1"){
+        const userData = await adminService.getAdminData()
+        dispatch(login(userData.data))
+        navigate("/admin/admin-profile")
       }
         else{
           dispatch(logout())
