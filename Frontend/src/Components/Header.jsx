@@ -13,7 +13,7 @@ function Header({toggleSidebar} ) {
         </div>
         
         <div className="flex ">
-        <img className="w-7 h-7" src="./src/assets/MAKAUT_Logo.png"/>
+        <img className="w-7 h-7" src="/MAKAUT_Logo.png"/>
         <h1 className="text-xl font-bold text-white drop-shadow">MAKAUT,WB</h1>
         </div>
       
