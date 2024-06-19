@@ -36,7 +36,22 @@ function Sidebar({ isOpen }) {
       }`}
     >
       <div className="fixed top-0 bottom-0 flex flex-col items-center w-8/12 h-screen pt-4 text-black bg-white sm:w-64">
-        {(!user || !user.resident_id) && obj1.map((item, index) => (
+        {(!user || (!user.resident_id && user.role === "student")) && obj1.map((item, index) => (
+          <NavLink
+            key={index}
+            to={item.path}
+            className={({ isActive }) =>
+              `${
+                isActive
+                  ? "bg-slate-300 text-white shadow-lg"
+                  : "text-black shadow-md"
+              } py-2 w-9/12 text-center uppercase text-xs font-semibold tracking-wider my-2 rounded-md`
+            }
+          >
+            <p className=" drop-shadow">{item.name}</p>
+          </NavLink>
+        ))}
+        {(user && user.role==="admin1") && obj2.map((item, index) => (
           <NavLink
             key={index}
             to={item.path}
@@ -55,6 +70,7 @@ function Sidebar({ isOpen }) {
         {status ? (
           <button
             className="fixed text-lg font-bold duration-100 bottom-3 sm:right-10 right-52 hover:underline underline-offset-[5px] text-slate-400 active:scale-105"
+            disabled={(loading===true)}
             onClick={logOut}
           >
             Logout
@@ -104,5 +120,28 @@ const obj1 = [
   {
     name: "Application Status",
     path: "student/application-status",
+  },
+];
+
+const obj2 = [
+  {
+    name: "Admin Pofile",
+    path: "admin/admin-profile",
+  },
+  {
+    name: "Admins",
+    path: "admin/admins",
+  },
+  {
+    name: "Residents",
+    path: "admin/residents",
+  },
+  {
+    name: "Applicants",
+    path: "admin/applicants",
+  },
+  {
+    name: "Allotmnent",
+    path: "admin/allotment",
   },
 ];
