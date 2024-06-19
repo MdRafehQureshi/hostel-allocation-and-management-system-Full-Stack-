@@ -18,10 +18,11 @@ app.use(express.static("public"));
 
 import authRouter from  "./routes/auth.routes.js"
 import studentRouter from "./routes/student.routes.js"
-
+import adminRouter from "./routes/admin.routes.js"
 
 app.use("/api/v1/auth",authRouter)
 app.use("/api/v1/student",studentRouter)
+app.use("/api/v1/admin",adminRouter)
 
 
 
