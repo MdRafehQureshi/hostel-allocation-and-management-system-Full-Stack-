@@ -38,7 +38,7 @@ const studentSignUp = asyncHandler(async (req, res) => {
         email,
     ]);
     if (verifyEmail.rows.length < 1) {
-        throw new ApiError(406, "Email does not exist");
+        throw new ApiError(400, "Email does not exist");
     }
     if (!verifyEmail.rows[0].otp) {
         throw new ApiError(400, "Please generate OTP.");
@@ -46,7 +46,7 @@ const studentSignUp = asyncHandler(async (req, res) => {
     const hashedOtp = verifyEmail.rows[0].otp;
     if (!verifyOtp(otp, hashedOtp)) {
         throw new ApiError(
-            409,
+            400,
             "OTP does not match, please make sure your OTP is correct."
         );
     }
