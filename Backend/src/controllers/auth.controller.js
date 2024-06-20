@@ -6,7 +6,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { db } from "../db/index.js";
 import { sendEmail } from "../utils/mail.js";
-import { generateOtp, hashOtp } from "../utils/otp.js";
+import { generateOtp, hashOtp, verifyOtp } from "../utils/otp.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -150,9 +150,7 @@ const login = asyncHandler(async (req, res) => {
                         id: adminData.rows[0].admin_id,
                         email: adminData.rows[0].email,
                         role:
-                            adminData.rows[0].level === 1
-                                ? "admin1"
-                                : "admin2",
+                            adminData.rows[0].level === 1 ? "admin1" : "admin2",
                     },
                 },
                 "User logged in successfully"
@@ -183,11 +181,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         console.log("unauhorized");
         throw new ApiError(401, "Unauthorized request!");
     }
-    
+
     const decodedToken = jwt.verify(
         incomingToken,
         process.env.REFRESH_TOKEN_SECRET
-    ); 
+    );
     if (!decodedToken) {
         throw new ApiError(401, "Refresh token invalid or expired");
     }
@@ -203,11 +201,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Refresh token expired or used");
         }
 
-        const accessToken = generateAccessToken(
-            decodedToken.id,
-            "student"
-        );
-        return res.status(200)
+        const accessToken = generateAccessToken(decodedToken.id, "student");
+        return res
+            .status(200)
             .cookie("accessToken", accessToken, cookieOptions)
             .cookie("refreshToken", incomingToken, cookieOptions)
             .json(
@@ -225,14 +221,66 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Refresh token expired or used");
     }
 
-    const accessToken = generateAccessToken(
-        decodedToken.id,
-        decodedToken.role
-    );
-    return res.status(200)
+    const accessToken = generateAccessToken(decodedToken.id, decodedToken.role);
+    return res
+        .status(200)
         .cookie("accessToken", accessToken, cookieOptions)
         .cookie("refreshToken", incomingToken, cookieOptions)
         .json(new ApiResponse(200, {}, "Access token refreshed successfully"));
 });
 
-export { login, logout, otpVerification, refreshAccessToken };
+const updatePassword = asyncHandler(async (req, res) => {
+    const { email, password, otp } = req.body;
+    const verifyEmail = await db.query("SELECT * FROM otp WHERE email=$1", [
+        email,
+    ]);
+    if (verifyEmail.rows.length < 1) {
+        throw new ApiError(404, "Could not verify the email.");
+    }
+    if (!verifyEmail.rows[0].otp) {
+        throw new ApiError(400, "Please generate otp");
+    }
+    if (!verifyOtp(otp, verifyEmail.rows[0].otp)) {
+        throw new ApiError(
+            400,
+            "Incorrect OTP"
+        );
+    }
+    await db.query("DELETE FROM otp WHERE email=$1", [email]);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const student = await db.query(
+        "SELECT password FROM student WHERE email=$1",
+        [email]
+    );
+    if (student.rows.length > 0) {
+        await db.query("UPDATE student SET password=$1 WHERE email=$2",
+         [ hashedPassword, email,]
+        );
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    {},
+                    "Student password updated successfully"
+                )
+            );
+    }
+    const admin = await db.query("SELECT password FROM admin WHERE email=$1", [
+        email,
+    ]);
+    if (admin.rows.length > 0) {
+        await db.query("UPDATE student SET password=$1 WHERE email=$2", [
+            hashedPassword,
+            email,
+        ]);
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(200, {}, "Admin password updated successfully")
+            );
+    }
+    throw new ApiError(404, "User cannot be found");
+});
+
+export { login, logout, otpVerification, refreshAccessToken, updatePassword };
