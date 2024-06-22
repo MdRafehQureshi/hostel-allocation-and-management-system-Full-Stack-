@@ -124,7 +124,7 @@ function SignUpComp1() {
           />
           {emailError && (
             <p className="mt-1 text-xs font-medium text-red-600">
-              {emailError.response.data.message}
+              {emailError}
             </p>
           )}
 
@@ -187,18 +187,6 @@ function SignUpComp1() {
                     {errors.otp.message}
                   </p>
                 )}
-
-                {/* <Input
-                    className="w-4/5 "
-                      label="OTP"
-                      {...register('otp', { required: "OTP is required",
-                      pattern: {
-                        value: /^\d{6}$/,
-                        message: "OTP must be a 6-digit number"
-                      }
-                      })}
-                      error={errors.otp}
-                    /> */}
               </div>
             )}
 
