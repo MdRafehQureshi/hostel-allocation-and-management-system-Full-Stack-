@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import Layout from "./Components/Layout";
 import AuthLayout from "./Components/AuthLayout"
-import { ApplicationForm, SignUp, LogIn, ApplicationStatus, Home, Instruction, AdminProfile, Admins, Residents, Applicants, Allotment, } from "./Pages";
+import { ApplicationForm, SignUp, LogIn, ApplicationStatus, Home, Instruction, AdminProfile, Admins, Residents, Applicants, Allotment, UpdateEmail, } from "./Pages";
 
 function App() {
   const router = createBrowserRouter(
@@ -27,6 +27,7 @@ function App() {
           <Route element={(<AuthLayout authentication={true}><Residents/></AuthLayout>)} path="residents"/>
           <Route element={(<AuthLayout authentication={true}><Applicants/></AuthLayout>)} path="applicants"/>
           <Route element={(<AuthLayout authentication={true}><Allotment/></AuthLayout>)} path="allotment"/>
+          <Route element={(<AuthLayout authentication={true}><UpdateEmail/></AuthLayout>)} path="update-email"/>
         </Route>
       </Route>
     </>
