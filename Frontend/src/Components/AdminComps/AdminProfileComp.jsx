@@ -54,7 +54,7 @@ function AdminProfileComp() {
         <h4 className="my-1 ">Name : {`${admin.first_name} ${admin.last_name}`}</h4>
         <h4 className="my-1 ">Email : {admin.email}</h4>
       </div>
-      <Button className="w-1/2 py-2 mx-auto mt-5 text-center text-white duration-300 bg-gray-600 rounded-md sm:py-1 active:opacity-80 sm:active:hover:scale-110 ">Change Email</Button>
+      <button onClick={()=>{navigate("/admin/update-email")}}  className="w-1/2 py-2 mx-auto mt-5 text-center text-white duration-300 bg-gray-600 rounded-md sm:py-1 active:opacity-80 sm:active:hover:scale-110 ">Change Email</button>
       <Button className="w-1/2 py-2 mx-auto mt-5 text-center text-white duration-300 bg-gray-600 rounded-md sm:py-1 active:opacity-80 sm:active:hover:scale-110 ">Change Password</Button>
     </div>
   </Container>

@@ -9,7 +9,7 @@ import AdminProfile from "./adminPages/Profile"
 import Residents from "./adminPages/Residents"
 import Applicants from "./adminPages/Applicants"
 import Allotment from "./adminPages/Allotment"
-
+import UpdateEmail from "./adminPages/UpdateEmail";
 export {
     ApplicationForm,
     Home,
@@ -22,4 +22,5 @@ export {
     Residents,
     Applicants,
     Allotment,
+    UpdateEmail
 }

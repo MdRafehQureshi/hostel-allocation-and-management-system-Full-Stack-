@@ -8,6 +8,7 @@ import File from "./File";
 import Select from "./Select";
 import AuthLayout from "./AuthLayout";
 import AdminProfileComp from "./AdminComps/AdminProfileComp";
+import UpdateEmailComp from "./AdminComps/UpdateEmailComp";
 export {
     ApplicationFormComp,
     ApplicationStatusComp ,
@@ -19,4 +20,6 @@ export {
     Select,
     AuthLayout,
     AdminProfileComp,
+    UpdateEmailComp,
+    
 }
