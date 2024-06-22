@@ -64,5 +64,20 @@ const updateAdminEmail = asyncHandler(async (req,res)=>{
    }
 })
 
+const test = asyncHandler(async (req,res)=>{
+    try {
+       const student = await db.query("Select created_at from student where email = $1",["mdrafehqureshi786@gmail.com"])
+       const date = student.rows[0].created_at
+       const adyear = "2020"
+       const d = new Date(`06-01-${adyear}`)
 
-export {getCurrentAdmin, updateAdminEmail}
+       console.log(date.toLocaleDateString());
+       console.log(d.getMonth());
+       console.log(d.getTime());
+       return res.json({message:"ok"})
+} catch (error) {
+    console.log(error);
+}
+})
+
+export {getCurrentAdmin, updateAdminEmail, test}
