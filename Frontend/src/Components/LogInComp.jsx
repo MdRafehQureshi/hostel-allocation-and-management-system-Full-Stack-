@@ -31,9 +31,10 @@ function LogInComp() {
         if (res.data.data.user.role === "student") {
           const userData = await studentService.getStudentData();
           dispatch(login(userData.data));
-          if(!res.data.data.user.resident_id){
+          (userData.data.data.user.resident_id)?
+          navigate("/student/application-status"):
           navigate("/student/application-form");
-        }
+        
       }else if(res.data.data.user.role === "admin1"){
         const userData = await adminService.getAdminData()
         dispatch(login(userData.data))
