@@ -11,6 +11,7 @@ import { verifyOtp } from "../utils/otp.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { getCoordinatesOpenCage, haversineDistance } from "../utils/distance.js";
+import { log } from "console";
 
 
 const dirPath = "./public/temp";
@@ -188,25 +189,30 @@ const getDistance = asyncHandler(async (req, res) => {
 });
 
 const submitApplication = asyncHandler(async (req, res) => {
+    const date = new Date()
     try {
         console.log("application data", req.body);
         console.log("application files", req.files);
         if (!req.files || Object.keys(req.files).length === 0)
             throw new ApiError(400, "No files were uploaded");
 
-        if (Object.keys(req.files).length !== 6) {
-            deleteAllFiles(dirPath);
-            // res.status(400).send("All files are required")
-            throw new ApiError(400, "All files are required");
-        }
         const requiredFiles = [
             "student_photo",
-            "student_disability_certificate",
             "income_proof",
             "admission_proof",
             "permanent_address_proof",
             "correspondence_address_proof",
         ];
+
+        if (req.body.is_disabled === "Yes") {
+            requiredFiles.push("student_disability_certificate");
+        }
+
+        if (Object.keys(req.files).length !== requiredFiles.length) {
+            deleteAllFiles(dirPath);
+            // res.status(400).send("All files are required")
+            throw new ApiError(400, "Please upload the required files");
+        }
 
         for (const file of requiredFiles) {
             if (!req.files[file] || !req.files[file][0].path) {
@@ -223,7 +229,7 @@ const submitApplication = asyncHandler(async (req, res) => {
         );
         const uploadResults = await Promise.all(uploadPromises);
 
-        if (uploadResults.some((result) => !result)) {
+        if (uploadResults.some((result) => !result|| !result.url)) {
             const publicIds = uploadResults.map(
                 (result) => result?.public_id || ""
             );
@@ -231,18 +237,17 @@ const submitApplication = asyncHandler(async (req, res) => {
             deleteAllFiles(dirPath);
             throw new ApiError(500, "Unable to upload files, please try again");
         }
-
+        
         const [
             student_photo_Cloudres,
-            student_disability_certificate_Cloudres,
             income_proof_Cloudres,
             admission_proof_Cloudres,
             permanent_address_proof_Cloudres,
             correspondence_address_proof_Cloudres,
+            student_disability_certificate_Cloudres,
         ] = uploadResults;
 
         const data = req.body;
-
         const query = `UPDATE student 
         SET student_phone_number = $1, 
             gender = $2, 
@@ -284,8 +289,9 @@ const submitApplication = asyncHandler(async (req, res) => {
             admission_proof = $38, 
             income_proof = $39, 
             permanent_address_proof = $40, 
-            correspondence_address_proof = $41
-        WHERE student_id = $42`;
+            correspondence_address_proof = $41,
+            updated_at = $42
+        WHERE student_id = $43`;
 
         const values = [
             data.student_phone_number,
@@ -324,13 +330,15 @@ const submitApplication = asyncHandler(async (req, res) => {
             data.post_office2,
             data.distance2,
             student_photo_Cloudres.url,
-            student_disability_certificate_Cloudres.url,
+            student_disability_certificate_Cloudres?.url || null,
             admission_proof_Cloudres.url,
             income_proof_Cloudres.url,
             permanent_address_proof_Cloudres.url,
             correspondence_address_proof_Cloudres.url,
+            date,
             req.user.student_id,
         ];
+
         try {
             await db.query("BEGIN");
             await db.query(query, values);
@@ -350,6 +358,7 @@ const submitApplication = asyncHandler(async (req, res) => {
             );
             await deleteUploadedCloudinaryResources(publicIds);
             await db.query(query, [
+                null,
                 null,
                 null,
                 null,
