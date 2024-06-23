@@ -15,7 +15,10 @@ function UpdateEmailComp() {
                                     oldOtp: false,
                                     newOtp: false,
                                 });
-  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState({
+                                                  oldOtp: false,
+                                                  newOtp: false,
+                                                });
   const [oldTimer, setOldTimer] = useState(() => {
     const savedTimer = localStorage.getItem("oldOtpTimer");
     return savedTimer ? parseInt(savedTimer, 10) : 0;
@@ -62,11 +65,11 @@ function UpdateEmailComp() {
     }
     try {
       // Call the API to send the OTP here, passing the email
-      setOtpLoading(true);
+      setOtpLoading((prev) => ({ ...prev, [otpType]: true }));
       await authService.generateOtp({ email });
-      setOtpLoading(false);
+      setOtpLoading((prev) => ({ ...prev, [otpType]: false }));
     } catch (error) {
-      setOtpLoading(false);
+      setOtpLoading((prev) => ({ ...prev, [otpType]: false }));
       console.error("ERROR : " + error);
       setError(error);
     }
@@ -182,7 +185,7 @@ function UpdateEmailComp() {
               }`}
               disabled={oldTimer > 0}
             >
-              {otpLoading
+              {otpLoading.oldOtp
                 ? "Sending..."
                 : oldTimer > 0
                 ? `Resend OTP`
@@ -237,7 +240,7 @@ function UpdateEmailComp() {
               }`}
               disabled={newTimer > 0}
             >
-              {otpLoading
+              {otpLoading.newOtp
                 ? "Sending..."
                 : newTimer > 0
                 ? `Resend OTP`
