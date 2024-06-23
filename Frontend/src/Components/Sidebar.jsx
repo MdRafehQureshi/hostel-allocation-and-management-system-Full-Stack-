@@ -36,7 +36,21 @@ function Sidebar({ isOpen }) {
       }`}
     >
       <div className="fixed top-0 bottom-0 flex flex-col items-center w-8/12 h-screen pt-4 text-black bg-white sm:w-64">
-        {(!user || (!user.resident_id && user.role === "student")) && obj1.map((item, index) => (
+        {(!user || (!user.resident_id && user.role === "student"))?obj1.map((item, index) => (
+          <NavLink
+            key={index}
+            to={item.path}
+            className={({ isActive }) =>
+              `${
+                isActive
+                  ? "bg-slate-300 text-white shadow-lg"
+                  : "text-black shadow-md"
+              } py-2 w-9/12 text-center uppercase text-xs font-semibold tracking-wider my-2 rounded-md`
+            }
+          >
+            <p className=" drop-shadow">{item.name}</p>
+          </NavLink>
+        )):obj3.map((item, index) => (
           <NavLink
             key={index}
             to={item.path}
@@ -116,6 +130,21 @@ const obj1 = [
   {
     name: "Apply for hostel",
     path: "student/application-form",
+  },
+  {
+    name: "Application Status",
+    path: "student/application-status",
+  },
+];
+
+const obj3 = [
+  {
+    name: "Home",
+    path: "/",
+  },
+  {
+    name: "Instruction",
+    path: "instruction",
   },
   {
     name: "Application Status",
