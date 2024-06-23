@@ -34,12 +34,12 @@ function ApplicationFormComp() {
                               post_office1: watch("post_office1"),                                                                   
                              } 
   const correspondenceAddress = {
-                              country2: watch("country2"),
-                              state2: watch("state2"),
+                              address2: watch("address2"),
                               city2 : watch("city2"),
                               district2: watch("district2"),
-                              address2: watch("address2"),
+                              state2: watch("state2"),                              
                               pin_code2: watch("pin_code2"),
+                              country2: watch("country2"),
                               police_station2: watch("police_station2"),
                               post_office2: watch("post_office2"),                                                                   
                             }  
@@ -214,8 +214,20 @@ function ApplicationFormComp() {
             )}
           />
           <Input type={"text"} label={"Course Duration"} {...register("course_duration")} readOnly />
-          <Input type={"text"} label={"Admission Year"} {...register("admission_year")} />
-          <Input type={"text"} label={"Current Semester"} {...register("current_semester")} />
+          <Input type={"text"} label={"Admission Year"} {...register("admission_year",{
+                    required: "Admission Year is required",
+                    pattern: {
+                      value: /^\d{4}$/,
+                      message: "Admission Year must be a 4-digit number",
+                    },
+                  })} />
+          <Input type={"text"} label={"Current Semester"} {...register("current_semester", {
+                    required: "Current Semester is required",
+                    pattern: {
+                      value: /^\d{1}$/,
+                      message: "Current semester must be a single-digit number",
+                    },
+                  })} />
 
 
                       {/* Student Medical Details */}
