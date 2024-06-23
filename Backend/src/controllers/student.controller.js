@@ -95,13 +95,14 @@ const getCurrentStudent = asyncHandler(async (req, res) => {
         if (resident.rows.length < 1) {
             throw new ApiError(404, "User Not Found");
         }
+        const applicantData = await db.query("SELECT application_status FROM applicant WHERE applicant_id =$1",[req.user.applicant_id])
         const { resident_id, student_id, ...filteredResidentData } =
             resident.rows[0];
         return res.status(200).json(
             new ApiResponse(
                 200,
                 {
-                    user: { ...req.user, ...filteredResidentData },
+                    user: { ...req.user,...applicantData.rows[0], ...filteredResidentData },
                 },
                 "Fetching of hosteler details successfull."
             )
