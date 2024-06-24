@@ -64,20 +64,232 @@ const updateAdminEmail = asyncHandler(async (req,res)=>{
    }
 })
 
-const test = asyncHandler(async (req,res)=>{
+const addHostel = asyncHandler(async(req,res)=>{
+    if(!(req.body.gender)|| !(req.body.floor_capacity)){
+        throw new ApiError(400,"Both fields are required to add hostel")
+    }
+    const gender = req.body.gender.toLowerCase() 
+    const genderPrefix = gender==="male"?"B":"G"
+    const totalHostel =  await db.query("Select Count(*) from hostel WHERE hostel_id LIKE $1",[`${genderPrefix}%`]) 
+    const newHostelCount = parseInt(totalHostel.rows[0].count,10) + 1
+    const newHostelId = `${genderPrefix}${newHostelCount}`
     try {
-       const student = await db.query("Select created_at from student where email = $1",["mdrafehqureshi786@gmail.com"])
-       const date = student.rows[0].created_at
-       const adyear = "2020"
-       const d = new Date(`06-01-${adyear}`)
+        await db.query("INSERT INTO hostel(hostel_id,floor_capacity) VALUES($1,$2)",[newHostelId,req.body.floor_capacity])
+    } catch (error) {
+        console.log("Error in adding hostel",error)
+        throw new ApiError(500,"Could not add hostel")
+    }
+    return res.status(200).json(new ApiResponse(200,{},"Hostel added successfully"))
+})
 
-       console.log(date.toLocaleDateString());
-       console.log(d.getMonth());
-       console.log(d.getTime());
+const addRoom = asyncHandler(async (req, res) => {
+    const hostelId = req.body.hostel_id;
+    if (!hostelId) {
+        throw new ApiError(400, "Please select hostel to add rooms.");
+    }
+    const floorCapacityData = await db.query(
+        "SELECT floor_capacity FROM hostel WHERE hostel_id=$1",
+        [hostelId]
+    );
+    if(floorCapacityData.rows.length<1){
+        throw new ApiError(404,`Could not find hostel ${hostelId} to add rooms to.`)
+    }
+    const floorCapacity = floorCapacityData.rows[0].floor_capacity;
+    const totalRoomsData = await db.query("SELECT COUNT(*) FROM room WHERE hostel_id=$1",[hostelId]);
+    const totalRooms = parseInt(totalRoomsData.rows[0].count,10);
+    const roomsInLastFloor = totalRooms % floorCapacity;
+    const totalFloors = Math.floor(totalRooms / floorCapacity);
+    const newRoomNo =
+        (floorCapacity > totalRooms)
+            ? totalRooms + 1
+            : roomsInLastFloor +
+              (totalFloors * 100) + 1;
+    const room = await db.query(
+        "INSERT INTO room(room_no,hostel_id) VALUES($1,$2) RETURNING room_no",
+        [newRoomNo, hostelId]
+    );
+    if (room.rows.length < 1 || !room.rows[0].room_no) {
+        throw new ApiError(500, "Could not add room");
+    }
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Room successfully added"));
+});
+
+const getAllHostels = asyncHandler(async(req,res)=>{
+    try {
+        const hostels = await db.query("SELECT * FROM hostel")
+        if(hostels.rows.length<1){
+            throw new ApiError(404,"No hostel found")
+        }
+        return res.status(200).json(new ApiResponse(200,
+            { hostels:hostels.rows}
+            ,"Hostels data fetched successfully"))
+} catch (error) {
+    console.log(error)
+}
+}) 
+
+const getAllRooms = asyncHandler(async(req,res)=>{
+    const rooms = await db.query("SELECT * FROM room")
+    if(rooms.rows.length<1){
+        throw new ApiError(404,"No room found")
+    }
+    return res.status(200).json(new ApiResponse(200,{
+        rooms:rooms.rows
+    },"Rooms data fetched successfully"))
+}) 
+
+const allotRooms = asyncHandler(async (req, res) => {
+    if (req.user.role !== "admin1") {
+        throw new ApiError(403, "Access denied");
+    }
+
+    try {
+        // Get the list of applicants who meet the criteria
+        const applicants = await db.query(
+            `SELECT s.*, a.application_status 
+            FROM student s 
+            JOIN applicant a ON s.student_id = a.student_id
+            WHERE a.application_status IN (1, 3)
+              AND (
+                (s.is_disabled = true AND s.degree_of_disability >= 40) OR 
+                (LEAST(s.distance1, s.distance2) > 200) OR 
+                (s.annual_family_income < 250000)
+              )
+            ORDER BY  s.degree_of_disability DESC, LEAST(s.distance1, s.distance2) DESC, s.annual_family_income ASC`
+        );
+
+        for (let student of applicants.rows) {
+            try {    
+            console.log("student", student);    
+            await db.query('BEGIN');
+            // Check if the course is completed
+            const admissionYear = student.admission_year;
+            const courseDuration = student.course_duration;
+            const currentDate = new Date();
+            const courseEndDate = new Date(`06-01-${admissionYear + courseDuration}`);
+
+            if (currentDate > courseEndDate) {
+                continue;
+            }
+
+            // Determine the hostel prefix based on gender
+            const gender = student.gender.toLowerCase();
+            const hostelPrefix = gender === "male" ? "B" : "G";
+            console.log(hostelPrefix);
+                // Find a room with availability
+                const room = await db.query(
+                    `SELECT * FROM room
+                     WHERE hostel_id LIKE $1
+                     AND (student1 IS NULL OR student2 IS NULL OR student3 IS NULL)
+                     LIMIT 1`,
+                    [`${hostelPrefix}%`]
+                );
+    
+                if (room.rows.length === 0) {
+                    // If no rooms are available, update application status to 3 (pending)
+                    await db.query(
+                        `UPDATE applicant 
+                        SET application_status = 3 
+                        WHERE student_id = $1`,
+                        [student.student_id]
+                    );
+
+                    await db.query('COMMIT')
+                    continue;
+                }
+    
+                const roomNo = room.rows[0].room_no;
+                const hostelId = room.rows[0].hostel_id;
+                // Allocate the room
+                let studentField = "";
+                if (room.rows[0].student1 === null) {
+                    studentField = "student1";
+                } else if (room.rows[0].student2 === null) {
+                    studentField = "student2";
+                } else if (room.rows[0].student3 === null) {
+                    studentField = "student3";
+                }
+    
+                await db.query(
+                    `UPDATE room
+                    SET ${studentField} = $1
+                    WHERE room_no = $2 AND hostel_id =$3`,
+                    [student.student_id, roomNo, hostelId]
+                );
+    
+                const residentId = await db.query(
+                    `INSERT INTO resident (student_id, hostel_id, room_no, is_active)
+                    VALUES ($1, $2, $3, true) RETURNING resident_id`,
+                    [student.student_id, room.rows[0].hostel_id, room.rows[0].room_no]
+                );
+
+                await db.query(
+                    'UPDATE student SET resident_id = $1 WHERE student_id =$2',
+                    [residentId.rows[0].resident_id,student.student_id]
+                )
+    
+                await db.query(
+                    `UPDATE applicant 
+                    SET application_status = 2 
+                    WHERE student_id = $1`,
+                    [student.student_id]
+                );
+                await db.query('COMMIT')
+            } catch (error) {
+                await db.query('ROLLBACK')
+                console.log(error)
+            }
+        }
+
+        return res.status(200).json(new ApiResponse(200, {}, "Room allotment process completed successfully"));
+    } catch (error) {
+        console.log(error);
+        throw new ApiError(500, "Room allotment process failed");
+    }
+});
+
+const test = asyncHandler(async (req,res)=>{
+    const date = new Date()
+    try {
+
+
+        const floorCapacity = 32
+        const totalRooms = 3
+    
+        const roomsInLastFloor = totalRooms % floorCapacity;
+        const totalFloors = Math.floor(totalRooms / floorCapacity);
+        const newRoomNo =
+            (floorCapacity > totalRooms)
+                ? totalRooms + 1
+                : roomsInLastFloor +
+                  (totalFloors * 100) + 1;
+
+        console.log(newRoomNo);
+        // const h = await db.query("Select * from hostel") 
+        // console.log(h.rows);
+    //     console.log(h.rows.length);
+    //    const student = await db.query("Update student set updated_at=$1 where email = $2 returning updated_at",[ date,"mdrafehqureshi786@gmail.com"])
+    //    const data = student.rows[0].updated_at
+    // const totalRooms =4
+    // const floorCapacity =2
+    // const roomsInLastFloor = totalRooms%floorCapacity
+    // const totalFloors = Math.floor(totalRooms/floorCapacity)
+    // // console.log(rem);
+    // //    console.log(rem + Math.floor(quo)*100+1);
+    //    console.log((floorCapacity>totalRooms)?totalRooms+1:(roomsInLastFloor + (totalFloors *100)+1));
+    //    const adyear = 2020
+    //    const cd = 4
+    //    const d1 = new Date(`06-01-${adyear}`)
+    //    const d3 = new Date(`07-01-${adyear + cd}`)
+    //    console.log(date.toLocaleDateString());
+    //    console.log(d1.getMonth());
+    //    console.log((d1.getTime()<date.getTime())&&(date.getTime()<d3.getTime()));
        return res.json({message:"ok"})
 } catch (error) {
     console.log(error);
 }
 })
 
-export {getCurrentAdmin, updateAdminEmail, test}
+export {getCurrentAdmin, updateAdminEmail, addHostel, addRoom, getAllHostels, getAllRooms, allotRooms, test}
