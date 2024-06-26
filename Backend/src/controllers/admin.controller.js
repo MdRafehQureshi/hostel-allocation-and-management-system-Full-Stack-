@@ -19,6 +19,87 @@ const getCurrentAdmin = asyncHandler(async (req, res) => {
         );
 });
 
+const getAllHostels = asyncHandler(async(req,res)=>{
+    try {
+        const hostels = await db.query("SELECT * FROM hostel")
+        const count = await db.query('SELECT COUNT(*) from hostel')
+        if(hostels.rows.length<1){
+            throw new ApiError(404,"No hostel found")
+        }
+        return res.status(200).json(new ApiResponse(200,
+            { hostels:hostels.rows,
+              count: count.rows[0].count,  
+            }
+            ,"Hostels data fetched successfully"))
+} catch (error) {
+    console.log(error)
+}
+}) 
+
+const getAllRooms = asyncHandler(async(req,res)=>{
+    const rooms = await db.query("SELECT * FROM room")
+    if(rooms.rows.length<1){
+        throw new ApiError(404,"No room found")
+    }
+    return res.status(200).json(new ApiResponse(200,{
+        rooms:rooms.rows
+    },"Rooms data fetched successfully"))
+}) 
+
+const getAllActiveResidents = asyncHandler(async(req,res)=>{
+    let residents = "";
+    let count = "";
+    if (req.user.role === "admin1") {
+        residents = await db.query(
+            "SELECT r.* ,s.first_name,s.last_name FROM resident r JOIN student s ON r.student_id=s.student_id WHERE is_active=$1",
+            [true]
+        );
+        count = await db.query(
+            "SELECT COUNT(*) FROM resident WHERE is_active=$1",
+            [true]
+        );
+    } else if (req.user.role === "admin2") {
+        residents = await db.query(
+            "SELECT r.* ,s.first_name,s.last_name FROM resident r JOIN student s ON r.student_id=s.student_id WHERE is_active=$1 AND hostel_id=$2",
+            [true, req.user.hostel_id]
+        );
+        count = await db.query(
+            "SELECT COUNT(*) FROM resident WHERE is_active=$1 AND hostel_id=$2",
+            [true, req.user.hostel_id]
+        );
+    }
+    if (residents.rows.length < 1) {
+        throw new ApiError(400, "No active residents");
+    }
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                residents:residents.rows,
+                count:count.rows[0].count,
+                },
+                "Data fetched successfully"
+            )
+        );
+})
+
+const getAllActiveApplicants = asyncHandler(async(req,res)=>{
+    const applicants = await db.query(`SELECT s.student_id, s.first_name,s.last_name,a.applicant_id,a.application_status
+                                     FROM student s 
+                                     JOIN applicant a ON s.student_id = a.student_id
+                                     WHERE is_active = true `)
+    const activeCount = await db.query(`SELECT COUNT(*) FROM applicant WHERE is_active=true`) 
+    if(applicants.rows<1){
+        throw new ApiError(400,"No active applicants found")
+    }
+    return res.json(new ApiResponse(200,{
+        applicants:applicants.rows,
+        activeCount:activeCount.rows[0].count,
+    },"Active applicant data fetched successfully"))
+})
+
 const updateAdminEmail = asyncHandler(async (req,res)=>{
    try {
      console.log(req.body);
@@ -116,29 +197,6 @@ const addRoom = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "Room successfully added"));
 });
 
-const getAllHostels = asyncHandler(async(req,res)=>{
-    try {
-        const hostels = await db.query("SELECT * FROM hostel")
-        if(hostels.rows.length<1){
-            throw new ApiError(404,"No hostel found")
-        }
-        return res.status(200).json(new ApiResponse(200,
-            { hostels:hostels.rows}
-            ,"Hostels data fetched successfully"))
-} catch (error) {
-    console.log(error)
-}
-}) 
-
-const getAllRooms = asyncHandler(async(req,res)=>{
-    const rooms = await db.query("SELECT * FROM room")
-    if(rooms.rows.length<1){
-        throw new ApiError(404,"No room found")
-    }
-    return res.status(200).json(new ApiResponse(200,{
-        rooms:rooms.rows
-    },"Rooms data fetched successfully"))
-}) 
 
 const allotRooms = asyncHandler(async (req, res) => {
     if (req.user.role !== "admin1") {
@@ -153,9 +211,9 @@ const allotRooms = asyncHandler(async (req, res) => {
             JOIN applicant a ON s.student_id = a.student_id
             WHERE a.application_status IN (1, 3)
               AND (
-                (s.is_disabled = true AND s.degree_of_disability >= 40) OR 
+                ((s.is_disabled = true AND s.degree_of_disability >= 40) OR 
                 (LEAST(s.distance1, s.distance2) > 200) OR 
-                (s.annual_family_income < 250000)
+                (s.annual_family_income < 250000)) AND a.is_active=true
               )
             ORDER BY  s.degree_of_disability DESC, LEAST(s.distance1, s.distance2) DESC, s.annual_family_income ASC`
         );
@@ -171,6 +229,8 @@ const allotRooms = asyncHandler(async (req, res) => {
             const courseEndDate = new Date(`06-01-${admissionYear + courseDuration}`);
 
             if (currentDate > courseEndDate) {
+                await db.query("UPDATE applicant SET is_active=false WHERE student_id=$2",[student.student_id])
+                await db.query('COMMIT')
                 continue;
             }
 
@@ -188,7 +248,7 @@ const allotRooms = asyncHandler(async (req, res) => {
                 );
     
                 if (room.rows.length === 0) {
-                    // If no rooms are available, update application status to 3 (pending)
+                    // If no rooms are available, update application status to 3 (rejected)
                     await db.query(
                         `UPDATE applicant 
                         SET application_status = 3 
@@ -232,7 +292,8 @@ const allotRooms = asyncHandler(async (req, res) => {
     
                 await db.query(
                     `UPDATE applicant 
-                    SET application_status = 2 
+                    SET application_status = 2,
+                    is_active = false 
                     WHERE student_id = $1`,
                     [student.student_id]
                 );
@@ -253,20 +314,20 @@ const allotRooms = asyncHandler(async (req, res) => {
 const test = asyncHandler(async (req,res)=>{
     const date = new Date()
     try {
-
-
-        const floorCapacity = 32
-        const totalRooms = 3
+       const a= await db.query("select * from applicant where is_active = false")
+console.log(a.rows);
+        // const floorCapacity = 32
+        // const totalRooms = 3
     
-        const roomsInLastFloor = totalRooms % floorCapacity;
-        const totalFloors = Math.floor(totalRooms / floorCapacity);
-        const newRoomNo =
-            (floorCapacity > totalRooms)
-                ? totalRooms + 1
-                : roomsInLastFloor +
-                  (totalFloors * 100) + 1;
+        // const roomsInLastFloor = totalRooms % floorCapacity;
+        // const totalFloors = Math.floor(totalRooms / floorCapacity);
+        // const newRoomNo =
+        //     (floorCapacity > totalRooms)
+        //         ? totalRooms + 1
+        //         : roomsInLastFloor +
+        //           (totalFloors * 100) + 1;
 
-        console.log(newRoomNo);
+        // console.log(newRoomNo);
         // const h = await db.query("Select * from hostel") 
         // console.log(h.rows);
     //     console.log(h.rows.length);
@@ -292,4 +353,15 @@ const test = asyncHandler(async (req,res)=>{
 }
 })
 
-export {getCurrentAdmin, updateAdminEmail, addHostel, addRoom, getAllHostels, getAllRooms, allotRooms, test}
+export {
+    getCurrentAdmin,
+    updateAdminEmail,
+    addHostel,
+    addRoom,
+    getAllHostels,
+    getAllRooms,
+    allotRooms,
+    getAllActiveResidents,
+    getAllActiveApplicants,
+    test,
+};
