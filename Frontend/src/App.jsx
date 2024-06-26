@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import Layout from "./Components/Layout";
 import AuthLayout from "./Components/AuthLayout"
-import { ApplicationForm, SignUp, LogIn, ApplicationStatus, Home, Instruction, AdminProfile, Admins, Residents, Applicants, Allotment, UpdateEmail, } from "./Pages";
+import { ApplicationForm, SignUp, LogIn, ApplicationStatus, Home, Instruction, AdminProfile, Admins, Residents, Allotment, UpdateEmail, Hostels, Rooms, } from "./Pages";
 
 function App() {
   const router = createBrowserRouter(
@@ -25,9 +25,10 @@ function App() {
           <Route index element={(<AuthLayout authentication={true}><AdminProfile/></AuthLayout>)} path="admin-profile"/> 
           <Route element={(<AuthLayout authentication={true}><Admins/></AuthLayout>)} path="admins"/>
           <Route element={(<AuthLayout authentication={true}><Residents/></AuthLayout>)} path="residents"/>
-          <Route element={(<AuthLayout authentication={true}><Applicants/></AuthLayout>)} path="applicants"/>
           <Route element={(<AuthLayout authentication={true}><Allotment/></AuthLayout>)} path="allotment"/>
           <Route element={(<AuthLayout authentication={true}><UpdateEmail/></AuthLayout>)} path="update-email"/>
+          <Route element={(<AuthLayout authentication={true}><Hostels/></AuthLayout>)} path="hostels"/>
+          <Route element={(<AuthLayout authentication={true}><Rooms/></AuthLayout>)} path="rooms"/>
         </Route>
       </Route>
     </>
