@@ -1,7 +1,8 @@
+import { AllotmentComp } from "../../Components"
 
 function Allotment() {
   return (
-    <div>Allotment</div>
+   <AllotmentComp/>
   )
 }
 

@@ -7,9 +7,10 @@ import ApplicationStatus from "./applicantPages/ApplicationStatus";
 import Admins from "./adminPages/Admins"
 import AdminProfile from "./adminPages/Profile"
 import Residents from "./adminPages/Residents"
-import Applicants from "./adminPages/Applicants"
 import Allotment from "./adminPages/Allotment"
 import UpdateEmail from "./adminPages/UpdateEmail";
+import Hostels from "./adminPages/Hostels";
+import Rooms from "./adminPages/Rooms";
 export {
     ApplicationForm,
     Home,
@@ -20,7 +21,8 @@ export {
     Admins,
     AdminProfile,
     Residents,
-    Applicants,
     Allotment,
-    UpdateEmail
+    UpdateEmail,
+    Hostels,
+    Rooms
 }

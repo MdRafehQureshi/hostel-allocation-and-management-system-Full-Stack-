@@ -1,7 +1,9 @@
+import { ResidentsComp } from "../../Components"
+
 
 function Resident() {
   return (
-    <div>Resident</div>
+    <ResidentsComp/>
   )
 }
 

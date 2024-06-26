@@ -9,6 +9,10 @@ import Select from "./Select";
 import AuthLayout from "./AuthLayout";
 import AdminProfileComp from "./AdminComps/AdminProfileComp";
 import UpdateEmailComp from "./AdminComps/UpdateEmailComp";
+import ResidentsComp from "./AdminComps/ResidentsComp";
+import AllotmentComp from "./AdminComps/AllotmentComp";
+import HostelsComp from "./AdminComps/HostelsComp";
+import RoomsComp from "./AdminComps/RoomsComp";
 export {
     ApplicationFormComp,
     ApplicationStatusComp ,
@@ -21,5 +25,8 @@ export {
     AuthLayout,
     AdminProfileComp,
     UpdateEmailComp,
-    
+    ResidentsComp,
+    AllotmentComp,    
+    HostelsComp,
+    RoomsComp
 }

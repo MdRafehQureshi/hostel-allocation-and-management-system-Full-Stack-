@@ -1,6 +1,7 @@
 import { apiClient } from "../config/axiosConfig";
-
+import axios from "axios";
 class Admin {
+    
     async getAdminData(){
         return await apiClient.get("/api/v1/admin/get-current-admin")
     }
@@ -10,24 +11,34 @@ class Admin {
     }
 
     async runAllocation(){
-        return await apiClient.post("/api/v1/allot")
+        return await apiClient.post("/api/v1/admin/allot")
     }
 
     async addHostel(data){
-        return await apiClient.post("api/v1/hostel",data)
+        return await apiClient.post("/api/v1/admin/hostel",data)
     }
 
     async addRooms(data){
-        return await apiClient.post("api/v1/rooms",data)
+        return await apiClient.post("/api/v1/admin/rooms",data)
     }
 
-    async getAllhostels(){
-        return await apiClient.get("api/v1/hostels")
+    async getAllHostels(){
+        return await apiClient.get("/api/v1/admin/hostels")
     }
 
-    async getAllrooms(){
-        return await apiClient.get("api/v1/all-rooms")
+    async getAllRooms(){
+        return await apiClient.get("/api/v1/admin/all-rooms")
     }
+    
+    async getAllActiveResidents(){
+        return await apiClient.get("/api/v1/admin/all-active-residents")
+    }
+
+    async getAllActiveApplicants(){
+        return await apiClient.get("/api/v1/admin/all-active-applicants")
+    }
+
+
 }
 
 const adminApiService = new Admin()
