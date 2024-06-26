@@ -17,7 +17,7 @@ const verifyJwt = asyncHandler(async (req, res, next) => {
             return next();
         }
         const admin = await db.query(
-            "SELECT admin_id,email,level,first_name,last_name FROM admin WHERE admin_id=$1",
+            "SELECT admin_id,email,level,first_name,last_name,hostel_id FROM admin WHERE admin_id=$1",
             [decodedToken?.id]
         );
         if (admin.rows.length > 0) {
